@@ -151,9 +151,16 @@ recalcNormals:function(vertices,faces,stride){
     }
   }
 },
+
 createSphere:function(context,radius,div){
 var radius = 1.0;
 var x, y, z;
+function hasSamePoints(v,a,b,c){
+ return (
+   (v[a]==v[b] && v[a+1]==v[b+1] && v[a+2]==v[b+2]) ||
+   (v[c]==v[b] && v[c+1]==v[b+1] && v[c+2]==v[b+2]) ||
+   (v[a]==v[c] && v[a+1]==v[c+1] && v[a+2]==v[c+2]));
+}
 if(typeof radius=="undefined")radius=1.0;
 if(typeof div=="undefined")div=6;
 if(div<=0)throw new Error("div must be 1 or more")
@@ -167,23 +174,27 @@ var vertices=[];
 var newStrip;
 for (var i=divisions-1;i>=0;i--) {
  var a=-90.0+(180.0*i/divisions);
- var rada=Math.PI/180*a;
- var ca=Math.cos(rada);
- var sa=Math.sin(rada);
- aCache[i*2]=ca;
- aCache[i*2+1]=sa;
+ if(i==0){
+  aCache[0]=0; // cos(-90deg)
+  aCache[1]=-1; // sin(-90deg)
+ } else {
+  var rada=Math.PI/180*a;
+  var ca=Math.cos(rada);
+  var sa=Math.sin(rada);
+  aCache[i*2]=ca;
+  aCache[i*2+1]=sa;
+ }
  if(i==divisions-1){
-  var radada=Math.PI/180*(a+da)
-  var cada=Math.cos(radada);
-  var sada=Math.sin(radada);
-  adaCache[i*2]=cada;
-  adaCache[i*2+1]=sada;
+  adaCache[i*2]=0; // cos(90deg)
+  adaCache[i*2+1]=1; // sin(90deg)
  } else {
   adaCache[i*2]=aCache[i*2+2];
   adaCache[i*2+1]=aCache[i*2+3];
  }
 }
-for (var i=0;i<divisions*2;i++) {
+bCache[0]=1; // cos(0deg)
+bCache[1]=0; // sin(0deg)
+for (var i=1;i<divisions*2;i++) {
  var b=(360.0*i/divisions);
  var radb=Math.PI/180*b;
  var cb=Math.cos(radb);
@@ -218,17 +229,30 @@ z = sb * cada;
 vertices.push(radius*x,radius*y,radius*z,-x,-y,-z,0,0);
 if(!newStrip){
   var index=(vertices.length/8)-4;
-  var startVert=index*8+6;
+  var start=index*8;
+  var startTex=start+6;
   // set texture coordinates
-  vertices[startVert]=tx1;
-  vertices[startVert+1]=ty1;
-  vertices[startVert+8]=tx1;
-  vertices[startVert+9]=ty2;
-  vertices[startVert+16]=tx2;
-  vertices[startVert+17]=ty2;
-  vertices[startVert+24]=tx2;
-  vertices[startVert+25]=ty1;
-  tris.push(index,index+1,index+2,index+1,index+2,index+3);
+  vertices[startTex]=tx1;
+  vertices[startTex+1]=ty1;
+  vertices[startTex+8]=tx1;
+  vertices[startTex+9]=ty2;
+  vertices[startTex+16]=tx2;
+  vertices[startTex+17]=ty2;
+  vertices[startTex+24]=tx2;
+  vertices[startTex+25]=ty1;
+  if(i==0 || i==divisions-1){
+    // if this is a polar zone it's possible for two vertices
+    // of a triangle to be the same, so prune triangles
+    // that have at least two matching vertices
+   if(!hasSamePoints(vertices,start,start+8,start+16)){
+    tris.push(index,index+1,index+2);
+   }
+   if(!hasSamePoints(vertices,start+8,start+16,start+24)){
+    tris.push(index+1,index+2,index+3);
+   }
+  } else {
+   tris.push(index,index+1,index+2,index+1,index+2,index+3);
+  }
 }
 newStrip=false;
 }
