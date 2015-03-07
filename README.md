@@ -8,9 +8,8 @@ If you like this software, consider donating to me at this link: http://upokecen
 An HTML5/WebGL implementation of gears.c (3D Gears), a public domain program
 written by Brian Paul.
 
-To use, include jQuery and the "glutil.js" script in your
-HTML.  See "[gears.html](http://peteroupc.github.io/html-gears/gears.html)" for a demo.
-([Source code of gears.html](https://raw.githubusercontent.com/peteroupc/html-gears/master/canvasback.html).)
+See "[gears.html](http://peteroupc.github.io/html-gears/gears.html)".
+([Source code of gears.html](https://raw.githubusercontent.com/peteroupc/html-gears/master/gears.html).)
 
 Source Code
 ---------
