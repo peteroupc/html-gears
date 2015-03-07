@@ -247,10 +247,10 @@ if(!newStrip){
     tris.push(index,index+1,index+2);
    }
    if(!hasSamePoints(vertices,start+8,start+16,start+24)){
-    tris.push(index+1,index+2,index+3);
+    tris.push(index+2,index+1,index+3);
    }
   } else {
-   tris.push(index,index+1,index+2,index+1,index+2,index+3);
+   tris.push(index,index+1,index+2,index+2,index+1,index+3);
   }
 }
 newStrip=false;
@@ -554,44 +554,74 @@ mat4multiply:function(a,b){
   return dst;
 },
 mat4rotate:function(mat, angle, v, vy, vz){
-if(typeof vy!="undefined" && typeof vz!="undefined"){
-  v=GLUtil.vec3norm([v,vy,vz]);
-} else {
-  v=GLUtil.vec3norm(v);
-}
 angle=angle*Math.PI/180;
-var c = Math.cos(angle);
-var s = Math.sin(angle);
-var tc=1-c;
-var v0tc=v[0]*tc;
-var v1tc=v[1]*tc;
-var v2tc=v[2]*tc;
-var v0s=v[0]*s;
-var v1s=v[1]*s;
-var v2s=v[2]*s;
-var x0=v[0]*v0tc+c,
-x1=v[0]*v1tc-v2s,
-x2=v[0]*v2tc+v1s,
-x3=v[1]*v0tc+v2s,
-x4=v[1]*v1tc+c,
-x5=v[1]*v2tc-v0s,
-x6=v[2]*v0tc-v1s,
-x7=v[2]*v1tc+v0s,
-x8=v[2]*v2tc+c;
+var cost = Math.cos(angle);
+var sint = Math.sin(angle);
+var v0,v1,v2;
+if(typeof vy!="undefined" && typeof vz!="undefined"){
+ v0=v;
+ v1=vy;
+ v2=vz;
+} else {
+ v0=v[0];
+ v1=v[1];
+ v2=v[2];
+}
+if( 1 == v0 && 0 == v1 && 0 == v2 ) {
+  return [mat[0], mat[1], mat[2], mat[3],
+  cost*mat[4]+mat[8]*sint, cost*mat[5]+mat[9]*sint, cost*mat[6]+mat[10]*sint, cost*mat[7]+mat[11]*sint,
+  cost*mat[8]-sint*mat[4], cost*mat[9]-sint*mat[5], cost*mat[10]-sint*mat[6], cost*mat[11]-sint*mat[7],
+  mat[12], mat[13], mat[14], mat[15]]
+} else if( 0 == v0 && 1 == v1 && 0 == v2 ) {
+return [cost*mat[0]-sint*mat[8], cost*mat[1]-sint*mat[9], cost*mat[2]-sint*mat[10], cost*mat[3]-sint*mat[11],
+  mat[4], mat[5], mat[6], mat[7],
+  cost*mat[8]+mat[0]*sint, cost*mat[9]+mat[1]*sint, cost*mat[10]+mat[2]*sint, cost*mat[11]+mat[3]*sint,
+  mat[12], mat[13], mat[14], mat[15]]
+} else if( 0 == v0 && 0 == v1 && 1 == v2 ) {
+ return [cost*mat[0]+mat[4]*sint, cost*mat[1]+mat[5]*sint, cost*mat[2]+mat[6]*sint, cost*mat[3]+mat[7]*sint,
+  cost*mat[4]-sint*mat[0], cost*mat[5]-sint*mat[1], cost*mat[6]-sint*mat[2], cost*mat[7]-sint*mat[3],
+  mat[8], mat[9], mat[10], mat[11], mat[12], mat[13], mat[14], mat[15]]
+} else if(0==v0 && 0 == v1 && 0==v2){
+ return mat.slice(0,16);
+} else {
+var iscale = 1.0 / Math.sqrt(v0*v0+v1*v1+v2*v2);
+v0 *=iscale;
+v1 *=iscale;
+v2 *=iscale;
+var x2 = v0 * v0;
+var y2 = v1 * v1;
+var z2 = v2 * v2;
+var mcos = 1.0 - cost;
+var xy = v0 * v1;
+var xz = v0 * v2;
+var yz = v1 * v2;
+var xs = v0 * sint;
+var ys = v1 * sint;
+var zs = v2 * sint;
+var v1 = mcos*x2;
+var v10 = mcos*yz;
+var v12 = mcos*z2;
+var v3 = mcos*xy;
+var v5 = mcos*xz;
+var v7 = mcos*y2;
+var v15 = cost+v1;
+var v16 = v3+zs;
+var v17 = v5-ys;
+var v18 = cost+v7;
+var v19 = v3-zs;
+var v20 = v10+xs;
+var v21 = cost+v12;
+var v22 = v5+ys;
+var v23 = v10-xs;
 return [
-mat[0]*x0+mat[4]*x1+mat[8]*x2,
-mat[1]*x0+mat[5]*x1+mat[9]*x2,
-mat[2]*x0+mat[6]*x1+mat[10]*x2,
-mat[3]*x0+mat[7]*x1+mat[11]*x2,
-mat[0]*x3+mat[4]*x4+mat[8]*x5,
-mat[1]*x3+mat[5]*x4+mat[9]*x5,
-mat[2]*x3+mat[6]*x4+mat[10]*x5,
-mat[3]*x3+mat[7]*x4+mat[11]*x5,
-mat[0]*x6+mat[4]*x7+mat[8]*x8,
-mat[1]*x6+mat[5]*x7+mat[9]*x8,
-mat[2]*x6+mat[6]*x7+mat[10]*x8,
-mat[3]*x6+mat[7]*x7+mat[11]*x8,
-mat[12],mat[13],mat[14],mat[15]]
+mat[0]*v15+mat[4]*v16+mat[8]*v17, mat[1]*v15+mat[5]*v16+mat[9]*v17,
+mat[10]*v17+mat[2]*v15+mat[6]*v16, mat[11]*v17+mat[3]*v15+mat[7]*v16,
+mat[0]*v19+mat[4]*v18+mat[8]*v20, mat[1]*v19+mat[5]*v18+mat[9]*v20,
+mat[10]*v20+mat[2]*v19+mat[6]*v18, mat[11]*v20+mat[3]*v19+mat[7]*v18,
+mat[0]*v22+mat[4]*v23+mat[8]*v21, mat[1]*v22+mat[5]*v23+mat[9]*v21,
+mat[10]*v21+mat[2]*v22+mat[6]*v23, mat[11]*v21+mat[3]*v22+mat[7]*v23,
+mat[12], mat[13], mat[14], mat[15]];
+}
 }
 };
 
@@ -965,6 +995,7 @@ function Scene3D(context){
  this.clearColor=[0,0,0,1];
  this.materials=new Materials(context);
  this.context.enable(context.BLEND);
+ this.context.enable(context.CULL_FACE);
  this._projectionMatrix=GLUtil.mat4identity();
  this._viewMatrix=GLUtil.mat4identity();
  this._matrixDirty=true;

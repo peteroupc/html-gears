@@ -36,7 +36,7 @@ function TriangleBuilder(){
      (this.vertices.length-this.startIndex)>=this.stride*4 &&
      (this.vertices.length-this.startIndex)%(this.stride*2)==0){
    var index=(this.vertices.length/this.stride)-4;
-   this.tris.push(index,index+1,index+2,index+1,index+2,index+3);
+   this.tris.push(index,index+1,index+2,index+2,index+1,index+3);
   } else if(this.builderMode==TriangleBuilder.QUADS &&
      (this.vertices.length-this.startIndex)%(this.stride*4)==0){
    var index=(this.vertices.length/this.stride)-4;
@@ -173,7 +173,7 @@ $(document).ready(function(){
    var mat2=GLUtil.mat4translate(mat,-3,-2,0);
    mat2=GLUtil.mat4rotate(mat2,angle,0,0,1);
    gear1.setMatrix(mat2);
-   mat2=GLUtil.mat4translate(mat,-3.1,-2,0);
+   mat2=GLUtil.mat4translate(mat,3.1,-2,0);
    mat2=GLUtil.mat4rotate(mat2,-2*angle-9,0,0,1);
    gear2.setMatrix(mat2);
    mat2=GLUtil.mat4translate(mat,-3.1,4.2,0);
