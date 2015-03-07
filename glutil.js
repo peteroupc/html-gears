@@ -622,6 +622,50 @@ mat[0]*v22+mat[4]*v23+mat[8]*v21, mat[1]*v22+mat[5]*v23+mat[9]*v21,
 mat[10]*v21+mat[2]*v22+mat[6]*v23, mat[11]*v21+mat[3]*v22+mat[7]*v23,
 mat[12], mat[13], mat[14], mat[15]];
 }
+},
+mat4rotated:function(angle, v, vy, vz){
+angle=angle*Math.PI/180;
+var cost = Math.cos(angle);
+var sint = Math.sin(angle);
+var v0,v1,v2;
+if(typeof vy!="undefined" && typeof vz!="undefined"){
+ v0=v;
+ v1=vy;
+ v2=vz;
+} else {
+ v0=v[0];
+ v1=v[1];
+ v2=v[2];
+}
+if( 1 == v0 && 0 == v1 && 0 == v2 ) {
+  return[1, 0, 0, 0, 0, cost, sint, 0, 0, -sint, cost, 0, 0, 0, 0, 1]
+} else if( 0 == v0 && 1 == v1 && 0 == v2 ) {
+return [cost, 0, -sint, 0, 0, 1, 0, 0, sint, 0, cost, 0, 0, 0, 0, 1]
+} else if( 0 == v0 && 0 == v1 && 1 == v2 ) {
+ return [cost, sint, 0, 0, -sint, cost, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+} else if(0==v0 && 0 == v1 && 0==v2){
+ return [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1];
+} else {
+var iscale = 1.0 / Math.sqrt(v0*v0+v1*v1+v2*v2);
+v0 *=iscale;
+v1 *=iscale;
+v2 *=iscale;
+var x2 = v0 * v0;
+var y2 = v1 * v1;
+var z2 = v2 * v2;
+var xy = v0 * v1;
+var xz = v0 * v2;
+var yz = v1 * v2;
+var xs = v0 * sint;
+var ys = v1 * sint;
+var zs = v2 * sint;
+var mcos = 1.0 - cost;
+var v0 = mcos*xy;
+var v1 = mcos*xz;
+var v2 = mcos*yz;
+return [cost+mcos*x2, v0+zs, v1-ys, 0, v0-zs, cost+mcos*y2, v2+xs, 0, v1+ys,
+  v2-xs, cost+mcos*z2, 0, 0, 0, 0, 1];
+}
 }
 };
 
@@ -881,7 +925,9 @@ Materials.prototype.getMaterialParams=function(am,di,sp,sh){
 Materials.prototype.getTexture=function(name, loadHandler){
  // Get cached texture
  if(this.textures[name] && this.textures.hasOwnProperty(name)){
-   return new Texture(this.textures[name]);
+   var ret=new Texture(this.textures[name]);
+   if(loadHandler)loadHandler(ret.texture);
+   return ret;
  }
  // Load new texture and cache it
  var tex=new TextureImage(this.context,name, loadHandler);
