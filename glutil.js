@@ -151,7 +151,6 @@ recalcNormals:function(vertices,faces,stride){
     }
   }
 },
-
 createSphere:function(context,radius,div){
 var radius = 1.0;
 var x, y, z;
@@ -776,20 +775,27 @@ return shader;
 };
 ShaderProgram.getDefaultFragment=function(disableShading){
 var shader="" +
-"precision highp float;\n" +
-"uniform sampler2D sampler;\n" + // texture sampler
+"precision highp float;\n";
+if(disableShading){
+shader+="uniform vec3 md;\n"; // solid color instead of material diffuse
+}
+shader+="uniform sampler2D sampler;\n" + // texture sampler
 "uniform float useTexture;\n" + // use texture sampler rather than solid color if 1
 "uniform float useColorAttr;\n" + // use color attribute if 1
-"uniform vec4 color;\n" + // solid color
 "varying vec2 textureUVVar;\n"+
 "varying vec3 colorAttrVar;\n";
 if(!disableShading){
  shader+="varying vec3 ambientAndSpecularVar;\n" +
  "varying vec3 diffuseVar;\n";
 }
-shader+="void main(){\n" +
-" vec4 baseColor=color*(1.0-useTexture) +\n"+
-"  texture2D(sampler,textureUVVar)*useTexture;\n"+
+shader+="void main(){\n";
+shader+=" vec4 baseColor;\n";
+if(!disableShading){
+shader+=" baseColor=vec4(1.0,1.0,1.0,1.0)*(1.0-useTexture);\n";
+} else {
+shader+=" baseColor=vec4(md,1.0)*(1.0-useTexture);\n";
+}
+shader+=" baseColor+=texture2D(sampler,textureUVVar)*useTexture;\n"+
 " baseColor=baseColor*(1.0-useColorAttr) +\n"+
 "  vec4(colorAttrVar,1.0)*useColorAttr;\n";
 if(!disableShading){
@@ -829,16 +835,15 @@ var Materials=function(context){
  this.textures={}
  this.context=context;
 }
-Materials.COLOR = 0;
 Materials.TEXTURE = 1;
 Materials.PARAMS = 2;
 Materials.prototype.getColor=function(r,g,b){
  if(typeof r=="number" && typeof g=="number" &&
     typeof b=="number"){
-   return new SolidColor(this.context,[r,g,b]);
+   return new MaterialShade([r,g,b],[r,g,b]);
  }
  // treat r as a 3-element RGB array
- return new SolidColor(this.context,r);
+ return new MaterialShade(r,r);
 }
 Materials.prototype.getMaterialParams=function(am,di,sp,sh){
  return new MaterialShade(am,di,sp,sh);
@@ -853,17 +858,9 @@ Materials.prototype.getTexture=function(name, loadHandler){
  this.textures[name]=tex;
  return new Texture(tex);
 }
-var SolidColor=function(context, color){
- this.kind=Materials.COLOR;
- this.material=new MaterialShade();
- this.color=[color[0],color[1],color[2],(color[3]==null ? 1.0 : color[3])];
- this.context=context;
-}
-SolidColor.prototype.setParams=function(material){
- this.material=material;
- return this;
-}
 function MaterialShade(ambient, diffuse, specular,shininess) {
+ // NOTE: A solid color is defined by setting ambient
+ // and diffuse to the same value
  this.kind=Materials.PARAMS;
  this.shininess=(shininess==null) ? 1 : Math.min(Math.max(0,shininess),128);
  this.ambient=ambient||[0.2,0.2,0.2];
@@ -927,18 +924,12 @@ Texture.fromImage=function(context,image){
 // Material binding
 MaterialShade.prototype.bind=function(program){
  program.setUniforms({
+ "useTexture":0,
  "mshin":this.shininess,
  "ma":this.ambient,
  "md":this.diffuse,
  "ms":this.specular
  });
-}
-SolidColor.prototype.bind=function(program){
-  var uniforms={};
-  uniforms["useTexture"]=0;
-  uniforms["color"]=this.color;
-  program.setUniforms(uniforms);
-  if(this.material)this.material.bind(program);
 }
 Texture.prototype.bind=function(program){
  this.texture.bind(program);
@@ -995,6 +986,12 @@ Scene3D.prototype.useProgram=function(program){
  this.program=program;
  this._initProgramData();
  return this;
+}
+Scene3D.prototype.disableLighting=function(){
+ var program=new ShaderProgram(this.context,
+   ShaderProgram.getDefaultVertex(true),
+   ShaderProgram.getDefaultFragment(true));
+ return this.useProgram(program);
 }
 Scene3D.prototype.getWidth=function(){
  return this.context.canvas.width*1.0;
