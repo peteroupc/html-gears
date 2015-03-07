@@ -933,7 +933,14 @@ MaterialShade.prototype.bind=function(program){
 }
 Texture.prototype.bind=function(program){
  this.texture.bind(program);
- if(this.material)this.material.bind(program);
+ if(this.material){
+   program.setUniforms({
+  "mshin":this.material.shininess,
+  "ma":this.material.ambient,
+  "md":this.material.diffuse,
+  "ms":this.material.specular
+  });
+ }
 }
 TextureImage.prototype.bind=function(program){
    if (this.texture!==null) {
@@ -1002,9 +1009,9 @@ Scene3D.prototype.getHeight=function(){
 Scene3D.prototype.getAspect=function(){
  return this.getWidth()/this.getHeight();
 }
-Scene3D.prototype.setPerspective=function(fov, near, far){
+Scene3D.prototype.setPerspective=function(fov, aspect, near, far){
  return this.setProjectionMatrix(GLUtil.mat4perspective(fov,
-   this.getAspect(),near,far));
+   aspect,near,far));
 }
 Scene3D.prototype.setFrustum=function(left, right, bottom, top, near, far){
  return this.setProjectionMatrix(GLUtil.mat4frustum(
