@@ -1,0 +1,195 @@
+<meta charset=utf-8>
+<head>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script type="text/javascript" src="glutil.js"></script>
+<script>
+//<!--
+
+// Adapted by Peter O. from gears.c (3D Gears), a public domain program
+// written by Brian Paul.
+
+function createContext(){
+  var canvasElement=$("#canvas").get(0);
+  return GLUtil.get3DContext(canvasElement);
+}
+
+function TriangleBuilder(){
+ this.vertices=[];
+ this.tris=[];
+ this.stride=6;
+ this.builderMode=TriangleBuilder.QUAD_STRIP;
+ this.normal=[0,0,0];
+ this.startIndex=0;
+ this.mode=function(m){
+  this.builderMode=m;
+  this.startIndex=this.vertices.length;
+ }
+ this.normal3=function(x,y,z){
+  this.normal[0]=x;
+  this.normal[1]=y;
+  this.normal[2]=z;
+ }
+ this.vertex3=function(x,y,z){
+  this.vertices.push(x,y,z,this.normal[0],this.normal[1],
+   this.normal[2]);
+  if(this.builderMode==TriangleBuilder.QUAD_STRIP &&
+     (this.vertices.length-this.startIndex)>=this.stride*4 &&
+     (this.vertices.length-this.startIndex)%(this.stride*2)==0){
+   var index=(this.vertices.length/this.stride)-4;
+   this.tris.push(index,index+1,index+2,index+1,index+2,index+3);
+  } else if(this.builderMode==TriangleBuilder.QUADS &&
+     (this.vertices.length-this.startIndex)%(this.stride*4)==0){
+   var index=(this.vertices.length/this.stride)-4;
+   this.tris.push(index,index+1,index+2,index+2,index+3,index);
+  }
+ }
+ this.build=function(context){
+  return new Shape(context,
+   GLUtil.createVerticesAndFaces(context,this.vertices,this.tris,
+   Shape.VEC3DNORMAL)); 
+ }
+}
+TriangleBuilder.QUAD_STRIP = 0;
+TriangleBuilder.QUADS = 1;
+
+function createGear(context, inner_radius, outer_radius, width, teeth, tooth_depth)
+{
+var i;
+var r0, r1, r2;
+var angle, da;
+var u, v, len;
+r0 = inner_radius;
+r1 = outer_radius - tooth_depth/2.0;
+r2 = outer_radius + tooth_depth/2.0;
+da = 2.0*Math.PI / teeth / 4.0;
+var builder=new TriangleBuilder();
+builder.normal3( 0.0, 0.0, 1.0 );
+/* draw front face */
+builder.mode(TriangleBuilder.QUAD_STRIP );
+for (i=0;i<=teeth;i++) {
+angle = i * 2.0*Math.PI / teeth;
+builder.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), width*0.5 );
+builder.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), width*0.5 );
+builder.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), width*0.5 );
+builder.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), width*0.5 );
+}
+
+/* draw front sides of teeth */
+builder.mode(TriangleBuilder.QUADS );
+da = 2.0*Math.PI / teeth / 4.0;
+for (i=0;i<teeth;i++) {
+angle = i * 2.0*Math.PI / teeth;
+builder.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), width*0.5 );
+builder.vertex3( r2*Math.cos(angle+da), r2*Math.sin(angle+da), width*0.5 );
+builder.vertex3( r2*Math.cos(angle+2*da), r2*Math.sin(angle+2*da), width*0.5 );
+builder.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), width*0.5 );
+}
+
+builder.normal3( 0.0, 0.0, -1.0 );
+/* draw back face */
+builder.mode(TriangleBuilder.QUAD_STRIP );
+for (i=0;i<=teeth;i++) {
+angle = i * 2.0*Math.PI / teeth;
+builder.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), -width*0.5 );
+builder.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), -width*0.5 );
+builder.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), -width*0.5 );
+builder.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), -width*0.5 );
+}
+
+/* draw back sides of teeth */
+builder.mode(TriangleBuilder.QUADS );
+da = 2.0*Math.PI / teeth / 4.0;
+for (i=0;i<teeth;i++) {
+angle = i * 2.0*Math.PI / teeth;
+builder.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), -width*0.5 );
+builder.vertex3( r2*Math.cos(angle+2*da), r2*Math.sin(angle+2*da), -width*0.5 );
+builder.vertex3( r2*Math.cos(angle+da), r2*Math.sin(angle+da), -width*0.5 );
+builder.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), -width*0.5 );
+}
+
+/* draw outward faces of teeth */
+builder.mode(TriangleBuilder.QUAD_STRIP );
+for (i=0;i<teeth;i++) {
+angle = i * 2.0*Math.PI / teeth;
+builder.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), width*0.5 );
+builder.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), -width*0.5 );
+u = r2*Math.cos(angle+da) - r1*Math.cos(angle);
+v = r2*Math.sin(angle+da) - r1*Math.sin(angle);
+len = Math.sqrt( u*u + v*v );
+u /= len;
+v /= len;
+builder.normal3( v, -u, 0.0 );
+builder.vertex3( r2*Math.cos(angle+da), r2*Math.sin(angle+da), width*0.5 );
+builder.vertex3( r2*Math.cos(angle+da), r2*Math.sin(angle+da), -width*0.5 );
+builder.normal3( Math.cos(angle), Math.sin(angle), 0.0 );
+builder.vertex3( r2*Math.cos(angle+2*da), r2*Math.sin(angle+2*da), width*0.5 );
+builder.vertex3( r2*Math.cos(angle+2*da), r2*Math.sin(angle+2*da), -width*0.5 );
+u = r1*Math.cos(angle+3*da) - r2*Math.cos(angle+2*da);
+v = r1*Math.sin(angle+3*da) - r2*Math.sin(angle+2*da);
+builder.normal3( v, -u, 0.0 );
+builder.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), width*0.5 );
+builder.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), -width*0.5 );
+builder.normal3( Math.cos(angle), Math.sin(angle), 0.0 );
+}
+builder.vertex3( r1*Math.cos(0), r1*Math.sin(0), width*0.5 );
+builder.vertex3( r1*Math.cos(0), r1*Math.sin(0), -width*0.5 );
+
+/* draw inside radius cylinder */
+builder.mode(TriangleBuilder.QUAD_STRIP );
+for (i=0;i<=teeth;i++) {
+angle = i * 2.0*Math.PI / teeth;
+builder.normal3( -Math.cos(angle), -Math.sin(angle), 0.0 );
+builder.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), -width*0.5 );
+builder.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), width*0.5 );
+}
+return builder.build(context);
+}
+
+$(document).ready(function(){
+  var context=createContext();
+  var scene=new Scene3D(context);
+  var red=[1,0,0];
+  var green=[0,1,0];
+  var blue=[0,0,1];
+  scene.setLightSource(LightSource.directionalLight([5,5,10]));
+  var gear1=createGear(scene.context,1.0, 4.0, 1.0, 20, 0.7)
+    .setMaterial(scene.getColor(red));
+  var gear2=createGear(scene.context,0.5, 2.0, 2.0, 10, 0.7)
+    .setMaterial(scene.getColor(green));
+  var gear3=createGear(scene.context,1.3, 2.0, 0.5, 10, 0.7)
+    .setMaterial(scene.getColor(blue));
+  scene.shapes.push(gear1,gear2,gear3);
+  var h=scene.getHeight()/scene.getWidth();
+  scene.setProjectionMatrix(GLUtil.mat4frustum(
+    -1,1,-h,h,5,60));
+  scene.setViewMatrix(GLUtil.mat4translated(0,0,-40));
+  var view_rotx=20,view_roty=30,view_rotz=0;
+  var angle=0;
+  GLUtil.renderLoop(function(){
+   var mat=GLUtil.mat4identity();
+   mat=GLUtil.mat4rotate(mat,view_rotx,1,0,0);
+   mat=GLUtil.mat4rotate(mat,view_roty,0,1,0);
+   mat=GLUtil.mat4rotate(mat,view_rotz,0,0,1);
+   var mat2=GLUtil.mat4translate(mat,-3,-2,0);
+   mat2=GLUtil.mat4rotate(mat2,angle,0,0,1);
+   gear1.setMatrix(mat2);
+   mat2=GLUtil.mat4translate(mat,-3.1,-2,0);
+   mat2=GLUtil.mat4rotate(mat2,-2*angle-9,0,0,1);
+   gear2.setMatrix(mat2);
+   mat2=GLUtil.mat4translate(mat,-3.1,4.2,0);
+   mat2=GLUtil.mat4rotate(mat2,-2*angle-25,0,0,1);
+   gear3.setMatrix(mat2);
+   scene.render();
+   angle+=4/2.0;
+   view_rotx+=3/2.0;
+   view_roty+=1;
+   view_rotz+=1/2.0;
+ });
+})
+//-->
+</script>
+</head>
+<body>
+<h1>3D Gears</h1>
+<canvas width="600" height="450" id=canvas></canvas>
+</body>
