@@ -1,6 +1,7 @@
 <meta charset=utf-8>
 <head>
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script type="text/javascript" src="glmath.js"></script>
 <script type="text/javascript" src="glutil.js"></script>
 <script>
 //<!--
@@ -160,24 +161,24 @@ $(document).ready(function(){
     .setMaterial(scene.getColor(blue));
   scene.shapes.push(gear1,gear2,gear3);
   var h=scene.getHeight()/scene.getWidth();
-  scene.setProjectionMatrix(GLUtil.mat4frustum(
+  scene.setProjectionMatrix(GLMath.mat4frustum(
     -1,1,-h,h,5,60));
-  scene.setViewMatrix(GLUtil.mat4translated(0,0,-40));
+  scene.setViewMatrix(GLMath.mat4translated(0,0,-40));
   var view_rotx=20,view_roty=30,view_rotz=0;
   var angle=0;
   GLUtil.renderLoop(function(){
-   var mat=GLUtil.mat4identity();
-   mat=GLUtil.mat4rotate(mat,view_rotx,1,0,0);
-   mat=GLUtil.mat4rotate(mat,view_roty,0,1,0);
-   mat=GLUtil.mat4rotate(mat,view_rotz,0,0,1);
-   var mat2=GLUtil.mat4translate(mat,-3,-2,0);
-   mat2=GLUtil.mat4rotate(mat2,angle,0,0,1);
+   var mat=GLMath.mat4identity();
+   mat=GLMath.mat4rotate(mat,view_rotx,1,0,0);
+   mat=GLMath.mat4rotate(mat,view_roty,0,1,0);
+   mat=GLMath.mat4rotate(mat,view_rotz,0,0,1);
+   var mat2=GLMath.mat4translate(mat,-3,-2,0);
+   mat2=GLMath.mat4rotate(mat2,angle,0,0,1);
    gear1.setMatrix(mat2);
-   mat2=GLUtil.mat4translate(mat,3.1,-2,0);
-   mat2=GLUtil.mat4rotate(mat2,-2*angle-9,0,0,1);
+   mat2=GLMath.mat4translate(mat,3.1,-2,0);
+   mat2=GLMath.mat4rotate(mat2,-2*angle-9,0,0,1);
    gear2.setMatrix(mat2);
-   mat2=GLUtil.mat4translate(mat,-3.1,4.2,0);
-   mat2=GLUtil.mat4rotate(mat2,-2*angle-25,0,0,1);
+   mat2=GLMath.mat4translate(mat,-3.1,4.2,0);
+   mat2=GLMath.mat4rotate(mat2,-2*angle-25,0,0,1);
    gear3.setMatrix(mat2);
    scene.render();
    angle+=4/2.0;
