@@ -44,16 +44,15 @@ function TriangleBuilder(){
    this.tris.push(index,index+1,index+2,index+2,index+3,index);
   }
  }
- this.build=function(context){
-  return new Shape(context,
-   GLUtil.createVerticesAndFaces(context,this.vertices,this.tris,
-   Shape.VEC3DNORMAL));
+ this.build=function(){
+  return new Mesh(this.vertices,this.tris,
+   Shape.VEC3DNORMAL);
  }
 }
 TriangleBuilder.QUAD_STRIP = 0;
 TriangleBuilder.QUADS = 1;
 
-function createGear(context, inner_radius, outer_radius, width, teeth, tooth_depth)
+function createGear(inner_radius, outer_radius, width, teeth, tooth_depth)
 {
 var i;
 var r0, r1, r2;
@@ -143,7 +142,7 @@ builder.normal3( -Math.cos(angle), -Math.sin(angle), 0.0 );
 builder.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), -width*0.5 );
 builder.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), width*0.5 );
 }
-return builder.build(context);
+return builder.build();
 }
 
 $(document).ready(function(){
@@ -153,13 +152,13 @@ $(document).ready(function(){
   var green=[0,1,0];
   var blue=[0,0,1];
   scene.setLightSource(LightSource.directionalLight([5,5,10]));
-  var gear1=createGear(scene.context,1.0, 4.0, 1.0, 20, 0.7)
-    .setMaterial(scene.getColor(red));
-  var gear2=createGear(scene.context,0.5, 2.0, 2.0, 10, 0.7)
-    .setMaterial(scene.getColor(green));
-  var gear3=createGear(scene.context,1.3, 2.0, 0.5, 10, 0.7)
-    .setMaterial(scene.getColor(blue));
-  scene.shapes.push(gear1,gear2,gear3);
+  var gear1=createGear(1.0, 4.0, 1.0, 20, 0.7);
+  var gear2=createGear(0.5, 2.0, 2.0, 10, 0.7);
+  var gear3=createGear(1.3, 2.0, 0.5, 10, 0.7);
+  gear1=new Shape(context,gear1).setColor(red);
+  gear2=new Shape(context,gear2).setColor(green);
+  gear3=new Shape(context,gear3).setColor(blue);
+  scene.addShape(gear1).addShape(gear2).addShape(gear3);
   var h=scene.getHeight()/scene.getWidth();
   scene.setProjectionMatrix(GLMath.mat4frustum(
     -1,1,-h,h,5,60));

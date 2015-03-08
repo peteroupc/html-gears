@@ -72,84 +72,11 @@ callRequestFrame:function(func){
   window.setTimeout(func,17);
  }
 },
-createVerticesAndFaces:function(context, vertices, faces, format){
- var vertbuffer=context.createBuffer();
- var facebuffer=context.createBuffer();
- context.bindBuffer(context.ARRAY_BUFFER, vertbuffer);
- context.bindBuffer(context.ELEMENT_ARRAY_BUFFER, facebuffer);
- context.bufferData(context.ARRAY_BUFFER,
-   new Float32Array(vertices), context.STATIC_DRAW);
- var type=context.UNSIGNED_SHORT;
- if(vertices.length>=65536 || faces.length>=65536){
-  type=context.UNSIGNED_INT;
-  context.bufferData(context.ELEMENT_ARRAY_BUFFER,
-    new Uint32Array(faces), context.STATIC_DRAW);
- } else if(vertices.length<=256 && faces.length<=256){
-  type=context.UNSIGNED_BYTE;
-  context.bufferData(context.ELEMENT_ARRAY_BUFFER,
-    new Uint8Array(faces), context.STATIC_DRAW);
- } else {
-  context.bufferData(context.ELEMENT_ARRAY_BUFFER,
-    new Uint16Array(faces), context.STATIC_DRAW);
- }
- return {verts:vertbuffer, faces:facebuffer,
-   facesLength: faces.length, type:type, format:format};
-},
 createCube:function(context){
  // Position X, Y, Z, normal NX, NY, NZ, texture U, V
  var vertices=[-1.0,-1.0,1.0,1.0,0.0,0.0,1.0,1.0,-1.0,1.0,1.0,1.0,0.0,0.0,1.0,0.0,-1.0,1.0,-1.0,1.0,0.0,0.0,0.0,0.0,-1.0,-1.0,-1.0,1.0,0.0,0.0,0.0,1.0,1.0,-1.0,-1.0,-1.0,0.0,0.0,1.0,1.0,1.0,1.0,-1.0,-1.0,0.0,0.0,1.0,0.0,1.0,1.0,1.0,-1.0,0.0,0.0,0.0,0.0,1.0,-1.0,1.0,-1.0,0.0,0.0,0.0,1.0,1.0,-1.0,-1.0,0.0,1.0,0.0,1.0,1.0,1.0,-1.0,1.0,0.0,1.0,0.0,1.0,0.0,-1.0,-1.0,1.0,0.0,1.0,0.0,0.0,0.0,-1.0,-1.0,-1.0,0.0,1.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,-1.0,0.0,1.0,1.0,1.0,1.0,-1.0,0.0,-1.0,0.0,1.0,0.0,-1.0,1.0,-1.0,0.0,-1.0,0.0,0.0,0.0,-1.0,1.0,1.0,0.0,-1.0,0.0,0.0,1.0,-1.0,-1.0,-1.0,0.0,0.0,1.0,1.0,1.0,-1.0,1.0,-1.0,0.0,0.0,1.0,1.0,0.0,1.0,1.0,-1.0,0.0,0.0,1.0,0.0,0.0,1.0,-1.0,-1.0,0.0,0.0,1.0,0.0,1.0,1.0,-1.0,1.0,0.0,0.0,-1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,-1.0,1.0,0.0,-1.0,1.0,1.0,0.0,0.0,-1.0,0.0,0.0,-1.0,-1.0,1.0,0.0,0.0,-1.0,0.0,1.0]
  var faces=[0,1,2,0,2,3,4,5,6,4,6,7,8,9,10,8,10,11,12,13,14,12,14,15,16,17,18,16,18,19,20,21,22,20,22,23]
- return GLUtil.createVerticesAndFaces(
-   context,vertices,faces,Shape.VEC3DNORMALUV);
-},
-recalcNormals:function(vertices,faces,stride){
-  for(var i=0;i<vertices.length;i+=stride){
-    vertices[i+3]=0.0
-    vertices[i+4]=0.0
-    vertices[i+5]=0.0
-  }
-  for(var i=0;i<vertices.length;i+=3){
-    var v1=faces[i]*stride
-    var v2=faces[i+1]*stride
-    var v3=faces[i+2]*stride
-    var n1=[vertices[v2]-vertices[v3],vertices[v2+1]-vertices[v3+1],vertices[v2+2]-vertices[v3+2]]
-    var n2=[vertices[v1]-vertices[v3],vertices[v1+1]-vertices[v3+1],vertices[v1+2]-vertices[v3+2]]
-    // cross multiply n1 and n2
-    var x=n1[1]*n2[2]-n1[2]*n2[1]
-    var y=n1[2]*n2[0]-n1[0]*n2[2]
-    var z=n1[0]*n2[1]-n1[1]*n2[0]
-    // normalize xyz vector
-    len=Math.sqrt(x*x+y*y+z*z);
-    if(len!=0){
-      len=1.0/len;
-      x*=len;
-      y*=len;
-      z*=len;
-      // add normalized normal to each vertex of the face
-      vertices[v1+3]+=x
-      vertices[v1+4]+=y
-      vertices[v1+5]+=z
-      vertices[v2+3]+=x
-      vertices[v2+4]+=y
-      vertices[v2+5]+=z
-      vertices[v3+3]+=x
-      vertices[v3+4]+=y
-      vertices[v3+5]+=z
-    }
-  }
-  // Normalize each normal of the vertex
-  for(var i=0;i<vertices.length;i+=stride){
-    var x=vertices[i+3];
-    var y=vertices[i+4];
-    var z=vertices[i+5];
-    len=Math.sqrt(x*x+y*y+z*z);
-    if(len){
-      len=1.0/len;
-      vertices[i+3]=x*len;
-      vertices[i+4]=y*len;
-      vertices[i+5]=z*len;
-    }
-  }
+ return new Mesh(vertices,faces,Mesh.VEC3DNORMALUV);
 },
 createSphere:function(context,radius,div){
 var radius = 1.0;
@@ -256,8 +183,205 @@ if(!newStrip){
 newStrip=false;
 }
 }
-return GLUtil.createVerticesAndFaces(
-   context,vertices,tris,Shape.VEC3DNORMALUV);
+return new Mesh(vertices,tris,Mesh.VEC3DNORMALUV);
+},
+loadObjFromUrl:function(context, url, handlers){
+ var xhr=new XMLHttpRequest();
+ var urlstr=url;
+ xhr.onload = function(){
+  if(xhr.status<300){
+   var rt="";
+   try {
+    rt=xhr.responseText;
+   } catch(e){};
+   var obj=GLUtil.loadObj(rt);
+   if(handlers.onload && obj){
+    handlers.onload(urlstr, obj);
+   }
+   if(handlers.onerror && !obj)
+    handlers.onerror(urlstr);
+  } else {
+   // object load failed
+   if(handlers.onerror)
+    handlers.onerror(urlstr);
+  }
+ }
+ xhr.onerror=function(){
+   if(handlers.onerror)
+    handlers.onerror(urlstr);
+ }
+ xhr.open("get", url, true);
+ xhr.send();
+},
+loadObj:function(str){
+ function pushVertex(verts,faces,look,
+   v1,v2,v3,n1,n2,n3,u1,u2){
+   var lookBack=faces.length-Math.min(20,faces.length);
+   lookBack=Math.max(lookBack,look);
+   // check if a recently added vertex already has the given
+   // values
+   for(var i=faces.length-1;i>=lookBack;i--){
+    var vi=faces[i]*8;
+    if(verts[vi]==v1 && verts[vi+1]==v2 && verts[vi+2]==v3 &&
+        verts[vi+3]==n1 && verts[vi+4]==n2 && verts[vi+5]==n3 &&
+        verts[vi+6]==u1 && verts[vi+7]==u2){
+     // found it
+     faces.push(faces[i]);
+     return;
+    }
+   }
+   var ret=verts.length/8;
+   verts.push(v1,v2,v3,n1,n2,n3,u1,u2);
+   faces.push(ret);
+ }
+ var number="(-?(?:\\d+\\.?\\d*|\\d*\\.\\d+)(?:[Ee][\\+\\-]?\\d+)?)"
+ var nonnegInteger="(\\d+)"
+ var vertexOnly=new RegExp("^"+nonnegInteger+"($|\\s+)")
+ var vertexNormalOnly=new RegExp("^"+nonnegInteger+"\\/\\/"+nonnegInteger+"($|\\s+)")
+ var vertexUVOnly=new RegExp("^"+nonnegInteger+"\\/"+
+   nonnegInteger+"($|\\s+)")
+ var vertexUVNormal=new RegExp("^"+nonnegInteger+"\\/"+nonnegInteger+
+   "\\/"+nonnegInteger+"($|\\s+)")
+ var vertexLine=new RegExp("^v\\s+"+number+"\\s+"+number+"\\s+"+number+"\\s*$")
+ var uvLine=new RegExp("^vt\\s+"+number+"\\s+"+number+"\\s*$")
+ var groupLine=new RegExp("^g\\s+.*$")
+ var usemtlLine=new RegExp("^usemtl\\s+([^\\:\\s]+)$")
+ var normalLine=new RegExp("^vn\\s+"+number+"\\s+"+number+"\\s+"+number+"\\s*")
+ var faceStart=new RegExp("^f\\s+")
+ var lines=str.split(/\r?\n/)
+ var vertices=[];
+ var resolvedVertices=[];
+ var normals=[];
+ var uvs=[];
+ var faces=[];
+ var currentFaces=[];
+ var lookBack=0;
+ var vertexKind=-1;
+ for(var i=0;i<lines.length;i++){
+  var line=lines[i];
+  // skip empty lines
+  if(line.length==0)continue;
+  // skip comments
+  if(line.charAt(0)=="#")continue;
+  while(line.charAt(line.length-1)=="\\" &&
+    i+1<line.length){
+    // The line continues on the next line
+   line=line.substr(0,line.length-1);
+   line+=" "+lines[i+1];
+   i++;
+  }
+  if(line.charAt(line.length-1)=="\\"){
+   line=line.substr(0,line.length-1);
+  }
+  var e=vertexLine.exec(line)
+  if(e){
+    vertices.push([parseFloat(e[1]),parseFloat(e[2]),parseFloat(e[3])]);
+    continue;
+  }
+  e=normalLine.exec(line)
+  if(e){
+    normals.push([parseFloat(e[1]),parseFloat(e[2]),parseFloat(e[3])]);
+    continue;
+  }
+  e=uvLine.exec(line)
+  if(e){
+    uvs.push([parseFloat(e[1]),parseFloat(e[2])]);
+    continue;
+  }
+  e=faceStart.exec(line)
+  if(e){
+    var oldline=line;
+    line=line.substr(e[0].length);
+    var faceCount=0;
+    while(line.length>0){
+     if(faceCount>=4 && (/\d+/).exec(line)){
+      throw new Error("more than 4 vertices in one face not supported: "+oldline)
+     }
+     e=vertexOnly.exec(line)
+     if(e){
+      if(vertexKind!=0){
+       vertexKind=0;
+       lookBack=faces.length;
+      }
+      var vtx=parseInt(e[1],10)-1;
+      pushVertex(resolvedVertices, faces, lookBack,
+        vertices[vtx][0],vertices[vtx][1],vertices[vtx][2],0,0,0,0,0);
+      currentFaces[faceCount]=faces[faces.length-1];
+      line=line.substr(e[0].length);
+      continue;
+     }
+     e=vertexNormalOnly.exec(line)
+     if(e){
+      if(vertexKind!=1){
+       vertexKind=1;
+       lookBack=faces.length;
+      }
+      var vtx=parseInt(e[1],10)-1;
+      var norm=parseInt(e[2],10)-1;
+      pushVertex(resolvedVertices, faces, lookBack,
+        vertices[vtx][0],vertices[vtx][1],vertices[vtx][2],
+        normals[norm][0],normals[norm][1],normals[norm][2],0,0);
+      currentFaces[faceCount]=faces[faces.length-1];
+      line=line.substr(e[0].length);
+      continue;
+     }
+     e=vertexUVOnly.exec(line)
+     if(e){
+      if(vertexKind!=2){
+       vertexKind=2;
+       lookBack=faces.length;
+      }
+      var vtx=parseInt(e[1],10)-1;
+      var uv=parseInt(e[2],10)-1;
+      pushVertex(resolvedVertices, faces, lookBack,
+        vertices[vtx][0],vertices[vtx][1],vertices[vtx][2],
+        0,0,0,uvs[uv][0],uvs[uv][1],0,0);
+      currentFaces[faceCount]=faces[faces.length-1];
+      line=line.substr(e[0].length);
+      continue;
+     }
+     e=vertexUVNormal.exec(line)
+     if(e){
+      if(vertexKind!=3){
+       vertexKind=3;
+       lookBack=faces.length;
+      }
+      var vtx=parseInt(e[1],10)-1;
+      var uv=parseInt(e[2],10)-1;
+      var norm=parseInt(e[3],10)-1;
+      pushVertex(resolvedVertices, faces, lookBack,
+        vertices[vtx][0],vertices[vtx][1],vertices[vtx][2],
+        normals[norm][0],normals[norm][1],normals[norm][2],
+        uvs[uv][0],uvs[uv][1]);
+      currentFaces[faceCount]=faces[faces.length-1];
+      line=line.substr(e[0].length);
+      continue;
+     }
+     faceCount++;
+     if(faceCount==4){
+      // Add the second triangle in the quad
+      faces[faces.length-1]=currentFaces[2];
+      faces.push(currentFaces[1]);
+      faces.push(currentFaces[3]);
+     }
+     throw new Error("unsupported face: "+oldline)
+    }
+    continue;
+  }
+  e=groupLine.exec(line)
+  if(e){
+    continue;
+  }
+  e=usemtlLine.exec(line)
+  if(e){
+    continue;
+  }
+  throw new Error("unsupported line: "+line)
+ }
+ if(normals.length==0){
+  GLUtil.recalcNormals(vertices,8);
+ }
+ return new Mesh(resolvedVertices,faces,Mesh.VEC3DNORMALUV);
 }
 };
 
@@ -496,6 +620,123 @@ LightSource.pointLight=function(position,ambient,diffuse,specular){
  return source
 };
 
+function MaterialShade(ambient, diffuse, specular,shininess) {
+ // NOTE: A solid color is defined by setting ambient
+ // and diffuse to the same value
+ this.kind=Materials.PARAMS;
+ this.shininess=(shininess==null) ? 1 : Math.min(Math.max(0,shininess),128);
+ this.ambient=ambient||[0.2,0.2,0.2];
+ this.diffuse=diffuse||[0.8,0.8,0.8];
+ this.specular=specular||[0,0,0];
+}
+MaterialShade.prototype.bind=function(program){
+ program.setUniforms({
+ "useTexture":0,
+ "mshin":this.shininess,
+ "ma":this.ambient,
+ "md":this.diffuse,
+ "ms":this.specular
+ });
+}
+
+function Mesh(vertices,faces,format){
+ this.vertices=vertices;
+ this.faces=faces;
+ this.format=format;
+}
+// These Shape constants will be removed
+Shape.VEC2D=2;
+Shape.VEC3D=3;
+Shape.VEC3DNORMALUV=6;
+Shape.VEC3DNORMAL=5;
+Shape.VEC3DCOLOR=7;
+Mesh.VEC2D=2;
+Mesh.VEC3D=3;
+Mesh.VEC3DNORMALUV=6;
+Mesh.VEC3DNORMAL=5;
+Mesh.VEC3DCOLOR=7;
+Mesh.prototype.bind=function(context){
+ var vertbuffer=context.createBuffer();
+ var facebuffer=context.createBuffer();
+ context.bindBuffer(context.ARRAY_BUFFER, vertbuffer);
+ context.bindBuffer(context.ELEMENT_ARRAY_BUFFER, facebuffer);
+ context.bufferData(context.ARRAY_BUFFER,
+   new Float32Array(this.vertices), context.STATIC_DRAW);
+ var type=context.UNSIGNED_SHORT;
+ if(this.vertices.length>=65536 || this.faces.length>=65536){
+  type=context.UNSIGNED_INT;
+  context.bufferData(context.ELEMENT_ARRAY_BUFFER,
+    new Uint32Array(this.faces), context.STATIC_DRAW);
+ } else if(this.vertices.length<=256 && this.faces.length<=256){
+  type=context.UNSIGNED_BYTE;
+  context.bufferData(context.ELEMENT_ARRAY_BUFFER,
+    new Uint8Array(this.faces), context.STATIC_DRAW);
+ } else {
+  context.bufferData(context.ELEMENT_ARRAY_BUFFER,
+    new Uint16Array(this.faces), context.STATIC_DRAW);
+ }
+ return {verts:vertbuffer, faces:facebuffer,
+   facesLength: this.faces.length, type:type, format:this.format};
+}
+Mesh._recalcNormals=function(vertices,faces,stride){
+  for(var i=0;i<vertices.length;i+=stride){
+    vertices[i+3]=0.0
+    vertices[i+4]=0.0
+    vertices[i+5]=0.0
+  }
+  for(var i=0;i<vertices.length;i+=3){
+    var v1=faces[i]*stride
+    var v2=faces[i+1]*stride
+    var v3=faces[i+2]*stride
+    var n1=[vertices[v2]-vertices[v3],vertices[v2+1]-vertices[v3+1],vertices[v2+2]-vertices[v3+2]]
+    var n2=[vertices[v1]-vertices[v3],vertices[v1+1]-vertices[v3+1],vertices[v1+2]-vertices[v3+2]]
+    // cross multiply n1 and n2
+    var x=n1[1]*n2[2]-n1[2]*n2[1]
+    var y=n1[2]*n2[0]-n1[0]*n2[2]
+    var z=n1[0]*n2[1]-n1[1]*n2[0]
+    // normalize xyz vector
+    len=Math.sqrt(x*x+y*y+z*z);
+    if(len!=0){
+      len=1.0/len;
+      x*=len;
+      y*=len;
+      z*=len;
+      // add normalized normal to each vertex of the face
+      vertices[v1+3]+=x
+      vertices[v1+4]+=y
+      vertices[v1+5]+=z
+      vertices[v2+3]+=x
+      vertices[v2+4]+=y
+      vertices[v2+5]+=z
+      vertices[v3+3]+=x
+      vertices[v3+4]+=y
+      vertices[v3+5]+=z
+    }
+  }
+  // Normalize each normal of the vertex
+  for(var i=0;i<vertices.length;i+=stride){
+    var x=vertices[i+3];
+    var y=vertices[i+4];
+    var z=vertices[i+5];
+    len=Math.sqrt(x*x+y*y+z*z);
+    if(len){
+      len=1.0/len;
+      vertices[i+3]=x*len;
+      vertices[i+4]=y*len;
+      vertices[i+5]=z*len;
+    }
+  }
+}
+Mesh.prototype.recalcNormals=function(){
+  if(this.format==Mesh.VEC3NORMAL){
+   Mesh._recalcNormals(this.vertices,this.faces,6);
+  } else if(this.format==Mesh.VEC3NORMALUV){
+   Mesh._recalcNormals(this.vertices,this.faces,8);
+  } else {
+   throw new Error("not supported");
+  }
+};
+
 (function(){
 var Materials=function(context){
  this.textures={}
@@ -525,15 +766,6 @@ Materials.prototype.getTexture=function(name, loadHandler){
  var tex=new TextureImage(this.context,name, loadHandler);
  this.textures[name]=tex;
  return new Texture(tex);
-}
-function MaterialShade(ambient, diffuse, specular,shininess) {
- // NOTE: A solid color is defined by setting ambient
- // and diffuse to the same value
- this.kind=Materials.PARAMS;
- this.shininess=(shininess==null) ? 1 : Math.min(Math.max(0,shininess),128);
- this.ambient=ambient||[0.2,0.2,0.2];
- this.diffuse=diffuse||[0.8,0.8,0.8];
- this.specular=specular||[0,0,0];
 }
 var Texture=function(texture){
  this.texture=texture;
@@ -590,15 +822,6 @@ Texture.fromImage=function(context,image){
   return texture;
 }
 // Material binding
-MaterialShade.prototype.bind=function(program){
- program.setUniforms({
- "useTexture":0,
- "mshin":this.shininess,
- "ma":this.ambient,
- "md":this.diffuse,
- "ms":this.specular
- });
-}
 Texture.prototype.bind=function(program){
  this.texture.bind(program);
  if(this.material){
@@ -620,7 +843,6 @@ TextureImage.prototype.bind=function(program){
         this.texture);
     }
 }
-window["MaterialShade"]=MaterialShade;
 window["Materials"]=Materials;
 })(window);
 
@@ -731,6 +953,10 @@ Scene3D.prototype.setViewMatrix=function(matrix){
  this._matrixDirty=true;
  return this;
 }
+Scene3D.prototype.addShape=function(shape){
+ this.shapes.push(shape);
+ return this;
+}
 Scene3D.prototype.setLightSource=function(light){
  this.lightSource=light;
  this.program.setLightSource(this.lightSource);
@@ -746,7 +972,12 @@ Scene3D.prototype.render=function(){
 }
 
 function Shape(context,vertfaces){
-  this.vertfaces=vertfaces;
+  if(vertfaces==null)throw new Error("vertfaces is null");
+  if(vertfaces.constructor==Mesh){
+   this.vertfaces=vertfaces.bind(context);
+  } else {
+   this.vertfaces=vertfaces;
+  }
   this.context=context;
   this.material=new MaterialShade();
   this.scale=[1,1,1];
@@ -772,11 +1003,10 @@ Shape.prototype.setMatrix=function(value){
 Shape.prototype.getDrawLines=function(){
  return this.drawLines;
 }
-Shape.VEC2D=2;
-Shape.VEC3D=3;
-Shape.VEC3DNORMALUV=6;
-Shape.VEC3DNORMAL=5;
-Shape.VEC3DCOLOR=7;
+Shape.prototype.setColor=function(color){
+ this.material=new MaterialShade(color,color);
+ return this;
+}
 Shape.prototype.setMaterial=function(material){
  this.material=material;
  return this;
@@ -833,7 +1063,7 @@ Shape.prototype.render=function(program){
    uniforms["world"]=this.matrix;
    uniforms["worldInverseTrans3"]=this._invTransModel3;
   }
-  uniforms["useColorAttr"]=(this.vertfaces.format==Shape.VEC3DCOLOR) ?
+  uniforms["useColorAttr"]=(this.vertfaces.format==Mesh.VEC3DCOLOR) ?
      1.0 : 0.0;
   program.setUniforms(uniforms);
   // Draw the shape
@@ -854,26 +1084,26 @@ Shape._bind=function(context, vertfaces,
   context.bindBuffer(context.ARRAY_BUFFER, vertfaces.verts);
   context.bindBuffer(context.ELEMENT_ARRAY_BUFFER, vertfaces.faces);
   var format=vertfaces.format;
-  if(format==Shape.VEC3DNORMAL){
+  if(format==Mesh.VEC3DNORMAL){
    Shape._vertexAttrib(context,attribPosition, 3, context.FLOAT, 6*4, 0);
    Shape._vertexAttrib(context,attribNormal, 3,
     context.FLOAT, 6*4, 3*4);
-  } else if(format==Shape.VEC3DNORMALUV){
+  } else if(format==Mesh.VEC3DNORMALUV){
    Shape._vertexAttrib(context,attribPosition, 3,
     context.FLOAT, 8*4, 0);
    Shape._vertexAttrib(context,attribNormal, 3,
     context.FLOAT, 8*4, 3*4);
    Shape._vertexAttrib(context,attribUV, 2,
     context.FLOAT, 8*4, 6*4);
-  } else if(format==Shape.VEC3DCOLOR){
+  } else if(format==Mesh.VEC3DCOLOR){
    Shape._vertexAttrib(context,attribPosition, 3,
     context.FLOAT, 6*4, 0);
    Shape._vertexAttrib(context,attribColor, 3,
     context.FLOAT, 6*4, 3*4);
-  } else if(format==Shape.VEC2D){
+  } else if(format==Mesh.VEC2D){
    Shape._vertexAttrib(context,attribPosition, 2,
      context.FLOAT, 2*4, 0);
-  } else if(format==Shape.VEC3D){
+  } else if(format==Mesh.VEC3D){
    Shape._vertexAttrib(context,attribPosition, 3,
      context.FLOAT, 3*4, 0);
   }
