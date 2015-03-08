@@ -1041,7 +1041,8 @@ function Scene3D(context){
  this.clearColor=[0,0,0,1];
  this.materials=new Materials(context);
  this.context.enable(context.BLEND);
- this.context.enable(context.CULL_FACE);
+ // TODO: Fix cubes when CULL_FACE is enabled
+ //this.context.enable(context.CULL_FACE);
  this._projectionMatrix=GLUtil.mat4identity();
  this._viewMatrix=GLUtil.mat4identity();
  this._matrixDirty=true;
