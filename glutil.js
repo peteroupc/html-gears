@@ -72,6 +72,45 @@ callRequestFrame:function(func){
   window.setTimeout(func,17);
  }
 },
+getPromiseResults:function(promises,
+   progressResolve, progressReject){
+ // Utility function that returns a promise that
+ // resolves after the given list of promises finishes
+ // its work.  The result will be an object with
+ // two keys:
+ // successes - contains a list of results from the
+ // promises that succeeded
+ // failures - contains a list of results from the
+ // promises that failed
+ // --- Parameters:
+ // promises - an array containing promise objects
+ // progressResolve - a function called as each
+ //  individual promise is resolved; optional
+ // progressReject - a function called as each
+ //  individual promise is rejected; optional
+ if(!promises || promises.length==0){
+  return Promise.resolve({
+    successes:[], failures:[]});
+ }
+ return new Promise(function(resolve, reject){
+  var ret={successes:[], failures:[]};
+  var totalPromises=promises.length;
+  var count=0;
+  for(var i=0;i<totalPromises;i++){
+   promises[i].then(function(result){
+    ret.successes.push(result);
+    if(progressResolve)progressResolve(result);
+    count++;
+    if(count==totalPromises){ resolve(ret); }
+   }, function(result){
+    ret.failures.push(result);
+    if(progressReject)progressReject(result);
+    count++;
+    if(count==totalPromises){ resolve(ret); }
+   });
+  }
+ });
+},
 createCube:function(){
  // Position X, Y, Z, normal NX, NY, NZ, texture U, V
  var vertices=[-1.0,-1.0,1.0,1.0,0.0,0.0,1.0,1.0,-1.0,1.0,1.0,1.0,0.0,0.0,1.0,0.0,-1.0,1.0,-1.0,1.0,0.0,0.0,0.0,0.0,-1.0,-1.0,-1.0,1.0,0.0,0.0,0.0,1.0,1.0,-1.0,-1.0,-1.0,0.0,0.0,1.0,1.0,1.0,1.0,-1.0,-1.0,0.0,0.0,1.0,0.0,1.0,1.0,1.0,-1.0,0.0,0.0,0.0,0.0,1.0,-1.0,1.0,-1.0,0.0,0.0,0.0,1.0,1.0,-1.0,-1.0,0.0,1.0,0.0,1.0,1.0,1.0,-1.0,1.0,0.0,1.0,0.0,1.0,0.0,-1.0,-1.0,1.0,0.0,1.0,0.0,0.0,0.0,-1.0,-1.0,-1.0,0.0,1.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,-1.0,0.0,1.0,1.0,1.0,1.0,-1.0,0.0,-1.0,0.0,1.0,0.0,-1.0,1.0,-1.0,0.0,-1.0,0.0,0.0,0.0,-1.0,1.0,1.0,0.0,-1.0,0.0,0.0,1.0,-1.0,-1.0,-1.0,0.0,0.0,1.0,1.0,1.0,-1.0,1.0,-1.0,0.0,0.0,1.0,1.0,0.0,1.0,1.0,-1.0,0.0,0.0,1.0,0.0,0.0,1.0,-1.0,-1.0,0.0,0.0,1.0,0.0,1.0,1.0,-1.0,1.0,0.0,0.0,-1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,-1.0,1.0,0.0,-1.0,1.0,1.0,0.0,0.0,-1.0,0.0,0.0,-1.0,-1.0,1.0,0.0,0.0,-1.0,0.0,1.0]
@@ -185,33 +224,109 @@ newStrip=false;
 }
 return new Mesh(vertices,tris,Mesh.VEC3DNORMALUV);
 },
-loadObjFromUrl:function(url, handlers){
- var xhr=new XMLHttpRequest();
+loadFileFromUrl:function(url){
  var urlstr=url;
- xhr.onload = function(){
-  if(xhr.status<300){
-   var rt="";
-   try {
-    rt=xhr.responseText;
-   } catch(e){};
-   var obj=GLUtil.loadObj(rt);
-   if(handlers.onload && obj){
-    handlers.onload(urlstr, obj);
-   }
-   if(handlers.onerror && !obj)
-    handlers.onerror(urlstr);
-  } else {
-   // object load failed
-   if(handlers.onerror)
-    handlers.onerror(urlstr);
+ return new Promise(function(resolve, reject){
+   var xhr=new XMLHttpRequest();
+   xhr.onreadystatechange=function(e){
+    var t=e.target;
+    if(t.readyState==4){
+     if(t.status>=200 && t.status<300){
+      var resp=t.response
+      if(!resp)resp=t.responseText
+      resolve({url: urlstr, text: resp+""});
+     } else {
+      reject({url: urlstr});
+     }
+    }
+   };
+   xhr.open("get", url, true);
+   xhr.send();
+ });
+},
+loadMtlFromUrl:function(url){
+ return GLUtil.loadFileFromUrl(url).then(
+   function(e){
+     return {url: e.url, mtl: GLUtil.loadMtl(e.text)};
+   },
+   function(e){
+     return {url: e.url}
+   });
+},
+loadObjFromUrl:function(url){
+ return GLUtil.loadFileFromUrl(url).then(
+   function(e){
+     return {url: e.url, obj: GLUtil.loadObj(e.text)};
+   },
+   function(e){
+     return {url: e.url}
+   });
+},
+loadMtl:function(str){
+ var number="(-?(?:\\d+\\.?\\d*|\\d*\\.\\d+)(?:[Ee][\\+\\-]?\\d+)?)"
+ var nonnegInteger="(\\d+)"
+ var oneNumLine=new RegExp("^(Ns|d|Tr|Ni)\\s+"+number+"\\s*$")
+ var oneIntLine=new RegExp("^(illum)\\s+"+nonnegInteger+"\\s*$")
+ var threeNumLine=new RegExp("^(Kd|Ka|Ks|Ke|Tf)\\s+"+number+"\\s+"+number
+   +"\\s+"+number+"\\s*$")
+ var mapLine=new RegExp("^(map_Kd)\\s+([^\\:\\s]+)$")
+ var newmtlLine=new RegExp("^newmtl\\s+([^\\s]+)$")
+ var faceStart=new RegExp("^f\\s+")
+ var lines=str.split(/\r?\n/)
+ var firstLine=true;
+ var materials={};
+ var currentMat=null;
+ for(var i=0;i<lines.length;i++){
+  var line=lines[i];
+  // skip empty lines
+  if(line.length==0)continue;
+  // skip comments
+  if(line.charAt(0)=="#")continue;
+  while(line.charAt(line.length-1)=="\\" &&
+    i+1<line.length){
+    // The line continues on the next line
+   line=line.substr(0,line.length-1);
+   line+=" "+lines[i+1];
+   i++;
   }
+  if(line.charAt(line.length-1)=="\\"){
+   line=line.substr(0,line.length-1);
+  }
+  if(firstLine && !(/^newmtl\s+/)){
+   return null;
+  }
+  firstLine=false;
+  var e=newmtlLine.exec(line)
+  if(e){
+    var name=e[1];
+    currentMat={};
+    materials[name]=currentMat;
+    continue;
+  }
+  e=threeNumLine.exec(line)
+  if(e){
+    currentMat[e[1]]=[parseFloat(e[2]),parseFloat(e[3]),parseFloat(e[4])];
+    continue;
+  }
+  e=oneNumLine.exec(line)
+  if(e){
+    currentMat[e[1]]=parseFloat(e[2]);
+    continue;
+  }
+  e=mapLine.exec(line)
+  if(e){
+    currentMat[e[1]]=e[2];
+    continue;
+  }
+  e=oneIntLine.exec(line)
+  if(e){
+    currentMat[e[1]]=[parseInt(e[2],10)];
+    continue;
+  }
+  throw new Error("unsupported line: "+line)
  }
- xhr.onerror=function(){
-   if(handlers.onerror)
-    handlers.onerror(urlstr);
- }
- xhr.open("get", url, true);
- xhr.send();
+ console.log(materials)
+ return materials;
 },
 loadObj:function(str){
  function pushVertex(verts,faces,look,
@@ -244,8 +359,8 @@ loadObj:function(str){
    "\\/"+nonnegInteger+"($|\\s+)")
  var vertexLine=new RegExp("^v\\s+"+number+"\\s+"+number+"\\s+"+number+"\\s*$")
  var uvLine=new RegExp("^vt\\s+"+number+"\\s+"+number+"\\s*$")
- var groupLine=new RegExp("^g\\s+.*$")
- var usemtlLine=new RegExp("^usemtl\\s+([^\\:\\s]+)$")
+ var usemtlLine=new RegExp("^(usemtl|o|g|s)\\s+([^\\s]+)\\s*$")
+ var mtllibLine=new RegExp("^(mtllib)\\s+([^\\:\\/\\s]+)\\s*$")
  var normalLine=new RegExp("^vn\\s+"+number+"\\s+"+number+"\\s+"+number+"\\s*")
  var faceStart=new RegExp("^f\\s+")
  var lines=str.split(/\r?\n/)
@@ -255,6 +370,7 @@ loadObj:function(str){
  var uvs=[];
  var faces=[];
  var currentFaces=[];
+ var ret={};
  var lookBack=0;
  var vertexKind=-1;
  for(var i=0;i<lines.length;i++){
@@ -308,6 +424,7 @@ loadObj:function(str){
         vertices[vtx][0],vertices[vtx][1],vertices[vtx][2],0,0,0,0,0);
       currentFaces[faceCount]=faces[faces.length-1];
       line=line.substr(e[0].length);
+     faceCount++;
       continue;
      }
      e=vertexNormalOnly.exec(line)
@@ -323,6 +440,7 @@ loadObj:function(str){
         normals[norm][0],normals[norm][1],normals[norm][2],0,0);
       currentFaces[faceCount]=faces[faces.length-1];
       line=line.substr(e[0].length);
+     faceCount++;
       continue;
      }
      e=vertexUVOnly.exec(line)
@@ -338,6 +456,7 @@ loadObj:function(str){
         0,0,0,uvs[uv][0],uvs[uv][1],0,0);
       currentFaces[faceCount]=faces[faces.length-1];
       line=line.substr(e[0].length);
+     faceCount++;
       continue;
      }
      e=vertexUVNormal.exec(line)
@@ -355,33 +474,40 @@ loadObj:function(str){
         uvs[uv][0],uvs[uv][1]);
       currentFaces[faceCount]=faces[faces.length-1];
       line=line.substr(e[0].length);
+      faceCount++;
       continue;
      }
-     faceCount++;
-     if(faceCount==4){
+     throw new Error("unsupported face: "+oldline)
+    }
+    if(faceCount==4){
       // Add the second triangle in the quad
       faces[faces.length-1]=currentFaces[2];
       faces.push(currentFaces[1]);
       faces.push(currentFaces[3]);
-     }
-     throw new Error("unsupported face: "+oldline)
     }
-    continue;
-  }
-  e=groupLine.exec(line)
-  if(e){
     continue;
   }
   e=usemtlLine.exec(line)
   if(e){
+    if(e[1]=="usemtl"){
+      ret["usemtl"]=e[2];
+    }
+    continue;
+  }
+  e=mtllibLine.exec(line)
+  if(e){
+    if(e[1]=="mtllib"){
+      ret["mtllib"]=e[2];
+    }
     continue;
   }
   throw new Error("unsupported line: "+line)
  }
+ ret["mesh"]=new Mesh(resolvedVertices,faces,Mesh.VEC3DNORMALUV);
  if(normals.length==0){
-  GLUtil.recalcNormals(vertices,8);
+  ret["mesh"].recalcNormals();
  }
- return new Mesh(resolvedVertices,faces,Mesh.VEC3DNORMALUV);
+ return ret;
 }
 };
 
@@ -425,6 +551,9 @@ var ShaderProgram=function(context, vertexShader, fragmentShader){
   }
   this.actives=ret;
  }
+}
+ShaderProgram.prototype.getContext=function(){
+ return this.context;
 }
 ShaderProgram.prototype.get=function(name){
  return (!this.actives.hasOwnProperty(name)) ?
@@ -628,6 +757,46 @@ function MaterialShade(ambient, diffuse, specular,shininess) {
  this.diffuse=diffuse||[0.8,0.8,0.8];
  this.specular=specular||[0,0,0];
 }
+MaterialShade.fromMtl=function(context, mtl){
+ function xyzToRgb(xyz){
+  // convert CIE XYZ to RGB
+  var rgb=[2.2878384873407613*r-0.8333676778352163*g-0.4544707958714208*b,
+    -0.5116513807438615*r+1.4227583763217775*g+0.08889300175529392*b,
+    0.005720409831409596*r-0.01590684851040362*g+1.0101864083734013*b]
+  // ensure RGB value fits in 0..1
+  var w=-Math.min(0,rgb[0],rgb[1],rgb[2]);
+  if(w>0){
+    rgb[0]+=w; rgb[1]+=w; rgb[2]+=w;
+  }
+  w=Math.max(rgb[0],rgb[1],rgb[2]);
+  if(w>1){
+    rgb[0]/=w; rgb[1]/=w; rgb[2]/=w;
+  }
+  return rgb;
+ }
+ var shininess=1.0;
+ var ambient=null;
+ var diffuse=null;
+ var specular=null;
+ var textureName=null;
+ if(mtl.hasOwnProperty("Ns")){
+  shininess=mtl["Ns"];
+ }
+ if(mtl.hasOwnProperty("Kd")){
+  diffuse=xyzToRgb(mtl["Kd"]);
+ }
+ if(mtl.hasOwnProperty("map_Kd")){
+  textureName=mtl["map_Kd"];
+ }
+ if(mtl.hasOwnProperty("Ka")){
+  ambient=xyzToRgb(mtl["Ka"]);
+ }
+ if(mtl.hasOwnProperty("Ks")){
+  specular=xyzToRgb(mtl["Ks"]);
+ }
+ var ret=new MaterialShade(ambient,diffuse,specular,shininess);
+ return ret;
+}
 MaterialShade.fromColor=function(r,g,b,a){
  if(typeof r=="number" && typeof g=="number" &&
     typeof b=="number"){
@@ -651,7 +820,6 @@ function Mesh(vertices,faces,format){
  this.faces=faces;
  this.format=format;
 }
-// These Shape constants will be removed
 Mesh.VEC2D=2;
 Mesh.VEC3D=3;
 Mesh.VEC3DNORMALUV=6;
@@ -730,13 +898,14 @@ Mesh._recalcNormals=function(vertices,faces,stride){
   }
 }
 Mesh.prototype.recalcNormals=function(){
-  if(this.format==Mesh.VEC3NORMAL){
+  if(this.format==Mesh.VEC3DNORMAL){
    Mesh._recalcNormals(this.vertices,this.faces,6);
-  } else if(this.format==Mesh.VEC3NORMALUV){
+  } else if(this.format==Mesh.VEC3DNORMALUV){
    Mesh._recalcNormals(this.vertices,this.faces,8);
   } else {
    throw new Error("not supported");
   }
+  return this;
 };
 
 (function(){
@@ -744,40 +913,69 @@ var TextureManager=function(context){
  this.textures={}
  this.context=context;
 }
-TextureManager.prototype.getTexture=function(name, loadHandler){
+TextureManager.prototype.loadTexture=function(name){
  // Get cached texture
  if(this.textures[name] && this.textures.hasOwnProperty(name)){
    var ret=new Texture(this.textures[name]);
-   if(loadHandler)loadHandler(ret.texture);
-   return ret;
+   return Promise.resolve(ret);
  }
+ var texImage=new TextureImage(name);
+ this.textures[name]=texImage;
  // Load new texture and cache it
- var tex=new TextureImage(this.context,name, loadHandler);
- this.textures[name]=tex;
- return new Texture(tex);
-}
+ return texImage.loadImage().then(
+  function(result){
+   return new Texture(result);
+  },
+  function(name){
+    return name.name;
+  });
+};
+
+TextureManager.prototype.loadTextureAndMap=function(name, context){
+  return this.loadTexture(name).then(function(result){
+    return result.load(context);
+  });
+};
 var Texture=function(texture){
+ if(!texture)throw new Error();
  this.texture=texture;
+ this.name=texture.name;
  this.material=new MaterialShade();
 }
 Texture.prototype.setParams=function(material){
  this.material=material;
  return this;
 }
-var TextureImage=function(context, name, loadHandler){
+Texture.prototype.load=function(context){
+ this.texture.load(context);
+ return this;
+}
+var TextureImage=function(name){
   this.texture=null;
-  this.context=context;
   this.name=name;
-  var thisObj=this;
+  this.image=null;
+}
+TextureImage.prototype.loadImage=function(){
+ var thisImage=this;
+ var thisName=this.name;
+ return new Promise(function(resolve,reject){
   var image=new Image();
   image.onload=function(e) {
-    thisObj.texture=Texture.fromImage(context,image);
-    if(loadHandler)loadHandler(thisObj);
-    image.onload=null;
-  };
-  image.src=name;
+   var target=e.target;
+   thisImage.image=target;
+   resolve(thisImage);
+  }
+  image.onerror=function(e){
+   reject({name:name});
+  }
+  image.src=thisName;
+ });
 }
-Texture.fromImage=function(context,image){
+TextureImage.prototype.load=function(context){
+  if(this.texture!==null){
+   // already loaded
+   return this;
+  }
   function isPowerOfTwo(a){
    if(Math.floor(a)!=a || a<=0)return false;
    while(a>1 && (a&1)==0){
@@ -785,14 +983,16 @@ Texture.fromImage=function(context,image){
    }
    return (a==1);
   }
-  var texture=context.createTexture();
+  this.texture=context.createTexture();
   context.pixelStorei(context.UNPACK_FLIP_Y_WEBGL, true);
-  context.bindTexture(context.TEXTURE_2D, texture);
+  context.bindTexture(context.TEXTURE_2D, this.texture);
   context.texParameteri(context.TEXTURE_2D,
     context.TEXTURE_MAG_FILTER, context.LINEAR);
   context.texImage2D(context.TEXTURE_2D, 0,
-    context.RGBA, context.RGBA, context.UNSIGNED_BYTE, image);
-  if(isPowerOfTwo(image.width) && isPowerOfTwo(image.height)){
+    context.RGBA, context.RGBA, context.UNSIGNED_BYTE,
+    this.image);
+  if(isPowerOfTwo(this.image.width) &&
+      isPowerOfTwo(this.image.height)){
    // Enable mipmaps if texture's dimensions are powers of two
    context.texParameteri(context.TEXTURE_2D,
      context.TEXTURE_MIN_FILTER, context.LINEAR_MIPMAP_LINEAR);
@@ -807,11 +1007,13 @@ Texture.fromImage=function(context,image){
      context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);
   }
   context.bindTexture(context.TEXTURE_2D, null);
-  return texture;
+  return this;
 }
 // Material binding
 Texture.prototype.bind=function(program){
- this.texture.bind(program);
+ if(this.texture!==null){
+  this.texture.bind(program);
+ }
  if(this.material){
    program.setUniforms({
   "mshin":this.material.shininess,
@@ -822,12 +1024,16 @@ Texture.prototype.bind=function(program){
  }
 }
 TextureImage.prototype.bind=function(program){
+   if(this.image!==null && this.texture===null){
+      // load the image if necessary
+      texture.load(program.getContext());
+   }
    if (this.texture!==null) {
       var uniforms={};
       uniforms["useTexture"]=1;
       program.setUniforms(uniforms);
-      this.context.activeTexture(this.context.TEXTURE0);
-      this.context.bindTexture(this.context.TEXTURE_2D,
+      program.getContext().activeTexture(program.getContext().TEXTURE0);
+      program.getContext().bindTexture(program.getContext().TEXTURE_2D,
         this.texture);
     }
 }
@@ -915,8 +1121,22 @@ Scene3D.prototype.getColor=function(r,g,b,a){
 Scene3D.prototype.getMaterialParams=function(am,di,sp,sh){
  return new MaterialShade(am,di,sp,sh);
 }
-Scene3D.prototype.getTexture=function(name){
- return this.textureManager.getTexture(name);
+Scene3D.prototype.loadTexture=function(name){
+ // Returns a promise with a Texture object result if it resolves
+ return this.textureManager.loadTexture(name);
+}
+Scene3D.prototype.loadTextureAndMap=function(name){
+ // Returns a promise with a Texture object result if it resolves
+ return this.textureManager.loadTextureAndMap(name, this.context);
+}
+Scene3D.prototype.loadTexturesAndMap=function(textureFiles, resolve, reject){
+ var promises=[];
+ for(var i=0;i<textureFiles.length;i++){
+  var objf=textureFiles[i];
+  var p=this.loadTextureAndMap(objf);
+  promises.push(p);
+ }
+ return GLUtil.getPromiseResults(promises, resolve, reject);
 }
 Scene3D.prototype._updateMatrix=function(){
  if(this._matrixDirty){
