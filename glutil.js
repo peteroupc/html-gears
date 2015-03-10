@@ -97,7 +97,8 @@ getPromiseResults:function(promises,
   var totalPromises=promises.length;
   var count=0;
   for(var i=0;i<totalPromises;i++){
-   promises[i].then(function(result){
+   var promise=promises[i];
+   promise.then(function(result){
     ret.successes.push(result);
     if(progressResolve)progressResolve(result);
     count++;
@@ -250,7 +251,7 @@ loadMtlFromUrl:function(url){
      return {url: e.url, mtl: GLUtil.loadMtl(e.text)};
    },
    function(e){
-     return {url: e.url}
+     return Promise.reject({url: e.url})
    });
 },
 loadObjFromUrl:function(url){
@@ -259,7 +260,7 @@ loadObjFromUrl:function(url){
      return {url: e.url, obj: GLUtil.loadObj(e.text)};
    },
    function(e){
-     return {url: e.url}
+     return Promise.reject({url: e.url})
    });
 },
 loadMtl:function(str){
@@ -1056,7 +1057,7 @@ TextureManager.prototype.loadTexture=function(name){
    return new Texture(result);
   },
   function(name){
-    return name.name;
+    return Promise.reject(name.name);
   });
 };
 
