@@ -244,271 +244,6 @@ loadFileFromUrl:function(url){
    xhr.open("get", url, true);
    xhr.send();
  });
-},
-loadMtlFromUrl:function(url){
- return GLUtil.loadFileFromUrl(url).then(
-   function(e){
-     return {url: e.url, mtl: GLUtil.loadMtl(e.text)};
-   },
-   function(e){
-     return Promise.reject({url: e.url})
-   });
-},
-loadObjFromUrl:function(url){
- return GLUtil.loadFileFromUrl(url).then(
-   function(e){
-     return {url: e.url, obj: GLUtil.loadObj(e.text)};
-   },
-   function(e){
-     return Promise.reject({url: e.url})
-   });
-},
-loadMtl:function(str){
- var number="(-?(?:\\d+\\.?\\d*|\\d*\\.\\d+)(?:[Ee][\\+\\-]?\\d+)?)"
- var nonnegInteger="(\\d+)"
- var oneNumLine=new RegExp("^(Ns|d|Tr|Ni)\\s+"+number+"\\s*$")
- var oneIntLine=new RegExp("^(illum)\\s+"+nonnegInteger+"\\s*$")
- var threeNumLine=new RegExp("^(Kd|Ka|Ks|Ke|Tf)\\s+"+number+"\\s+"+number
-   +"\\s+"+number+"\\s*$")
- var mapLine=new RegExp("^(map_Kd)\\s+([^\\:\\s]+)$")
- var newmtlLine=new RegExp("^newmtl\\s+([^\\s]+)$")
- var faceStart=new RegExp("^f\\s+")
- var lines=str.split(/\r?\n/)
- var firstLine=true;
- var materials={};
- var currentMat=null;
- for(var i=0;i<lines.length;i++){
-  var line=lines[i];
-  // skip empty lines
-  if(line.length==0)continue;
-  // skip comments
-  if(line.charAt(0)=="#")continue;
-  while(line.charAt(line.length-1)=="\\" &&
-    i+1<line.length){
-    // The line continues on the next line
-   line=line.substr(0,line.length-1);
-   line+=" "+lines[i+1];
-   i++;
-  }
-  if(line.charAt(line.length-1)=="\\"){
-   line=line.substr(0,line.length-1);
-  }
-  if(firstLine && !(/^newmtl\s+/)){
-   return null;
-  }
-  firstLine=false;
-  var e=newmtlLine.exec(line)
-  if(e){
-    var name=e[1];
-    currentMat={};
-    materials[name]=currentMat;
-    continue;
-  }
-  e=threeNumLine.exec(line)
-  if(e){
-    currentMat[e[1]]=[parseFloat(e[2]),parseFloat(e[3]),parseFloat(e[4])];
-    continue;
-  }
-  e=oneNumLine.exec(line)
-  if(e){
-    currentMat[e[1]]=parseFloat(e[2]);
-    continue;
-  }
-  e=mapLine.exec(line)
-  if(e){
-    currentMat[e[1]]=e[2];
-    continue;
-  }
-  e=oneIntLine.exec(line)
-  if(e){
-    currentMat[e[1]]=[parseInt(e[2],10)];
-    continue;
-  }
-  throw new Error("unsupported line: "+line)
- }
- console.log(materials)
- return materials;
-},
-loadObj:function(str){
- function pushVertex(verts,faces,look,
-   v1,v2,v3,n1,n2,n3,u1,u2){
-   var lookBack=faces.length-Math.min(20,faces.length);
-   lookBack=Math.max(lookBack,look);
-   // check if a recently added vertex already has the given
-   // values
-   for(var i=faces.length-1;i>=lookBack;i--){
-    var vi=faces[i]*8;
-    if(verts[vi]==v1 && verts[vi+1]==v2 && verts[vi+2]==v3 &&
-        verts[vi+3]==n1 && verts[vi+4]==n2 && verts[vi+5]==n3 &&
-        verts[vi+6]==u1 && verts[vi+7]==u2){
-     // found it
-     faces.push(faces[i]);
-     return;
-    }
-   }
-   var ret=verts.length/8;
-   verts.push(v1,v2,v3,n1,n2,n3,u1,u2);
-   faces.push(ret);
- }
- var number="(-?(?:\\d+\\.?\\d*|\\d*\\.\\d+)(?:[Ee][\\+\\-]?\\d+)?)"
- var nonnegInteger="(\\d+)"
- var vertexOnly=new RegExp("^"+nonnegInteger+"($|\\s+)")
- var vertexNormalOnly=new RegExp("^"+nonnegInteger+"\\/\\/"+nonnegInteger+"($|\\s+)")
- var vertexUVOnly=new RegExp("^"+nonnegInteger+"\\/"+
-   nonnegInteger+"($|\\s+)")
- var vertexUVNormal=new RegExp("^"+nonnegInteger+"\\/"+nonnegInteger+
-   "\\/"+nonnegInteger+"($|\\s+)")
- var vertexLine=new RegExp("^v\\s+"+number+"\\s+"+number+"\\s+"+number+"\\s*$")
- var uvLine=new RegExp("^vt\\s+"+number+"\\s+"+number+"\\s*$")
- var usemtlLine=new RegExp("^(usemtl|o|g|s)\\s+([^\\s]+)\\s*$")
- var mtllibLine=new RegExp("^(mtllib)\\s+([^\\:\\/\\s]+)\\s*$")
- var normalLine=new RegExp("^vn\\s+"+number+"\\s+"+number+"\\s+"+number+"\\s*")
- var faceStart=new RegExp("^f\\s+")
- var lines=str.split(/\r?\n/)
- var vertices=[];
- var resolvedVertices=[];
- var normals=[];
- var uvs=[];
- var faces=[];
- var currentFaces=[];
- var ret={};
- var lookBack=0;
- var vertexKind=-1;
- for(var i=0;i<lines.length;i++){
-  var line=lines[i];
-  // skip empty lines
-  if(line.length==0)continue;
-  // skip comments
-  if(line.charAt(0)=="#")continue;
-  while(line.charAt(line.length-1)=="\\" &&
-    i+1<line.length){
-    // The line continues on the next line
-   line=line.substr(0,line.length-1);
-   line+=" "+lines[i+1];
-   i++;
-  }
-  if(line.charAt(line.length-1)=="\\"){
-   line=line.substr(0,line.length-1);
-  }
-  var e=vertexLine.exec(line)
-  if(e){
-    vertices.push([parseFloat(e[1]),parseFloat(e[2]),parseFloat(e[3])]);
-    continue;
-  }
-  e=normalLine.exec(line)
-  if(e){
-    normals.push([parseFloat(e[1]),parseFloat(e[2]),parseFloat(e[3])]);
-    continue;
-  }
-  e=uvLine.exec(line)
-  if(e){
-    uvs.push([parseFloat(e[1]),parseFloat(e[2])]);
-    continue;
-  }
-  e=faceStart.exec(line)
-  if(e){
-    var oldline=line;
-    line=line.substr(e[0].length);
-    var faceCount=0;
-    while(line.length>0){
-     if(faceCount>=4 && (/\d+/).exec(line)){
-      throw new Error("more than 4 vertices in one face not supported: "+oldline)
-     }
-     e=vertexOnly.exec(line)
-     if(e){
-      if(vertexKind!=0){
-       vertexKind=0;
-       lookBack=faces.length;
-      }
-      var vtx=parseInt(e[1],10)-1;
-      pushVertex(resolvedVertices, faces, lookBack,
-        vertices[vtx][0],vertices[vtx][1],vertices[vtx][2],0,0,0,0,0);
-      currentFaces[faceCount]=faces[faces.length-1];
-      line=line.substr(e[0].length);
-     faceCount++;
-      continue;
-     }
-     e=vertexNormalOnly.exec(line)
-     if(e){
-      if(vertexKind!=1){
-       vertexKind=1;
-       lookBack=faces.length;
-      }
-      var vtx=parseInt(e[1],10)-1;
-      var norm=parseInt(e[2],10)-1;
-      pushVertex(resolvedVertices, faces, lookBack,
-        vertices[vtx][0],vertices[vtx][1],vertices[vtx][2],
-        normals[norm][0],normals[norm][1],normals[norm][2],0,0);
-      currentFaces[faceCount]=faces[faces.length-1];
-      line=line.substr(e[0].length);
-     faceCount++;
-      continue;
-     }
-     e=vertexUVOnly.exec(line)
-     if(e){
-      if(vertexKind!=2){
-       vertexKind=2;
-       lookBack=faces.length;
-      }
-      var vtx=parseInt(e[1],10)-1;
-      var uv=parseInt(e[2],10)-1;
-      pushVertex(resolvedVertices, faces, lookBack,
-        vertices[vtx][0],vertices[vtx][1],vertices[vtx][2],
-        0,0,0,uvs[uv][0],uvs[uv][1],0,0);
-      currentFaces[faceCount]=faces[faces.length-1];
-      line=line.substr(e[0].length);
-     faceCount++;
-      continue;
-     }
-     e=vertexUVNormal.exec(line)
-     if(e){
-      if(vertexKind!=3){
-       vertexKind=3;
-       lookBack=faces.length;
-      }
-      var vtx=parseInt(e[1],10)-1;
-      var uv=parseInt(e[2],10)-1;
-      var norm=parseInt(e[3],10)-1;
-      pushVertex(resolvedVertices, faces, lookBack,
-        vertices[vtx][0],vertices[vtx][1],vertices[vtx][2],
-        normals[norm][0],normals[norm][1],normals[norm][2],
-        uvs[uv][0],uvs[uv][1]);
-      currentFaces[faceCount]=faces[faces.length-1];
-      line=line.substr(e[0].length);
-      faceCount++;
-      continue;
-     }
-     throw new Error("unsupported face: "+oldline)
-    }
-    if(faceCount==4){
-      // Add the second triangle in the quad
-      faces[faces.length-1]=currentFaces[2];
-      faces.push(currentFaces[1]);
-      faces.push(currentFaces[3]);
-    }
-    continue;
-  }
-  e=usemtlLine.exec(line)
-  if(e){
-    if(e[1]=="usemtl"){
-      ret["usemtl"]=e[2];
-    }
-    continue;
-  }
-  e=mtllibLine.exec(line)
-  if(e){
-    if(e[1]=="mtllib"){
-      ret["mtllib"]=e[2];
-    }
-    continue;
-  }
-  throw new Error("unsupported line: "+line)
- }
- ret["mesh"]=new Mesh(resolvedVertices,faces,Mesh.VEC3DNORMALUV);
- if(normals.length==0){
-  ret["mesh"].recalcNormals();
- }
- return ret;
 }
 };
 
@@ -891,48 +626,8 @@ function MaterialShade(ambient, diffuse, specular,shininess) {
  this.diffuse=diffuse||[0.8,0.8,0.8];
  this.specular=specular||[0,0,0];
 }
-MaterialShade.fromMtl=function(context, mtl){
- function xyzToRgb(xyz){
-  // convert CIE XYZ to RGB
-  var rgb=[2.2878384873407613*r-0.8333676778352163*g-0.4544707958714208*b,
-    -0.5116513807438615*r+1.4227583763217775*g+0.08889300175529392*b,
-    0.005720409831409596*r-0.01590684851040362*g+1.0101864083734013*b]
-  // ensure RGB value fits in 0..1
-  var w=-Math.min(0,rgb[0],rgb[1],rgb[2]);
-  if(w>0){
-    rgb[0]+=w; rgb[1]+=w; rgb[2]+=w;
-  }
-  w=Math.max(rgb[0],rgb[1],rgb[2]);
-  if(w>1){
-    rgb[0]/=w; rgb[1]/=w; rgb[2]/=w;
-  }
-  return rgb;
- }
- var shininess=1.0;
- var ambient=null;
- var diffuse=null;
- var specular=null;
- var textureName=null;
- if(mtl.hasOwnProperty("Ns")){
-  shininess=mtl["Ns"];
- }
- if(mtl.hasOwnProperty("Kd")){
-  diffuse=xyzToRgb(mtl["Kd"]);
- }
- if(mtl.hasOwnProperty("map_Kd")){
-  textureName=mtl["map_Kd"];
- }
- if(mtl.hasOwnProperty("Ka")){
-  ambient=xyzToRgb(mtl["Ka"]);
- }
- if(mtl.hasOwnProperty("Ks")){
-  specular=xyzToRgb(mtl["Ks"]);
- }
- var ret=new MaterialShade(ambient,diffuse,specular,shininess);
- return ret;
-}
 MaterialShade.fromColor=function(r,g,b,a){
- var color=GLUtil.toGLColor(r,g,b,a);
+ var color=GLUtil["toGLColor"](r,g,b,a);
  return new MaterialShade(color,color);
 }
 MaterialShade.prototype.bind=function(program){
@@ -1038,50 +733,74 @@ Mesh.prototype.recalcNormals=function(){
   return this;
 };
 
-(function(){
-var TextureManager=function(context){
- this.textures={}
- this.context=context;
+var Texture=function(name){
+ this.textureImage=null;
+ this.name=name;
+ this.material=new MaterialShade();
 }
-TextureManager.prototype.loadTexture=function(name){
+Texture._fromTextureImage=function(textureImage){
+ var tex=new Texture(textureImage.name);
+ tex.textureImage=textureImage;
+ tex.name=textureImage.name;
+ tex.material=new MaterialShade();
+ return tex;
+}
+
+Texture.loadTexture=function(name, textureCache){
  // Get cached texture
- if(this.textures[name] && this.textures.hasOwnProperty(name)){
-   var ret=new Texture(this.textures[name]);
+ if(textureCache &&
+    textureCache[name] && textureCache.hasOwnProperty(name)){
+   var ret=Texture._fromTextureImage(textureCache[name]);
    return Promise.resolve(ret);
  }
  var texImage=new TextureImage(name);
- this.textures[name]=texImage;
+ if(textureCache){
+  textureCache[name]=texImage;
+ }
  // Load new texture and cache it
  return texImage.loadImage().then(
   function(result){
-   return new Texture(result);
+   return Texture._fromTextureImage(result);
   },
   function(name){
     return Promise.reject(name.name);
   });
-};
+}
 
-TextureManager.prototype.loadTextureAndMap=function(name, context){
-  return this.loadTexture(name).then(function(result){
-    return result.load(context);
+Texture.loadAndMapTexture=function(name, context, textureCache){
+  return Texture.loadTexture(name, textureCache).then(function(result){
+    return result.mapToContext(context);
   });
 };
-var Texture=function(texture){
- if(!texture)throw new Error();
- this.texture=texture;
- this.name=texture.name;
- this.material=new MaterialShade();
-}
 Texture.prototype.setParams=function(material){
  this.material=material;
  return this;
 }
-Texture.prototype.load=function(context){
- this.texture.load(context);
+Texture.prototype.mapToContext=function(context){
+ this.textureImage.mapToContext(context);
  return this;
 }
+Texture.prototype.bind=function(program){
+ if(this.textureImage!==null){
+  this.textureImage.bind(program);
+ } else if(this.name!==null){
+  this.textureImage=new TextureImage(this.name);
+  this.textureImage.loadImage();
+ }
+ if(this.material){
+   program.setUniforms({
+  "mshin":this.material.shininess,
+  "ma":[this.material.ambient[0],
+    this.material.ambient[1], this.material.ambient[2]],
+  "md":[this.material.diffuse[0],
+    this.material.diffuse[1], this.material.diffuse[2]],
+  "ms":this.material.specular
+  });
+ }
+}
+//////////////////////////////////
 var TextureImage=function(name){
-  this.texture=null;
+  this.textureName=null;
   this.name=name;
   this.image=null;
 }
@@ -1105,8 +824,8 @@ TextureImage.prototype.loadImage=function(){
   image.src=thisName;
  });
 }
-TextureImage.prototype.load=function(context){
-  if(this.texture!==null){
+TextureImage.prototype.mapToContext=function(context){
+  if(this.textureName!==null){
    // already loaded
    return this;
   }
@@ -1117,9 +836,9 @@ TextureImage.prototype.load=function(context){
    }
    return (a==1);
   }
-  this.texture=context.createTexture();
+  this.textureName=context.createTexture();
   context.pixelStorei(context.UNPACK_FLIP_Y_WEBGL, true);
-  context.bindTexture(context.TEXTURE_2D, this.texture);
+  context.bindTexture(context.TEXTURE_2D, this.textureName);
   context.texParameteri(context.TEXTURE_2D,
     context.TEXTURE_MAG_FILTER, context.LINEAR);
   context.texImage2D(context.TEXTURE_2D, 0,
@@ -1140,47 +859,32 @@ TextureImage.prototype.load=function(context){
    context.texParameteri(context.TEXTURE_2D,
      context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);
   }
-  context.bindTexture(context.TEXTURE_2D, null);
   return this;
 }
-// Material binding
-Texture.prototype.bind=function(program){
- if(this.texture!==null){
-  this.texture.bind(program);
- }
- if(this.material){
-   program.setUniforms({
-  "mshin":this.material.shininess,
-  "ma":this.material.ambient,
-  "md":this.material.diffuse,
-  "ms":this.material.specular
-  });
- }
-}
 TextureImage.prototype.bind=function(program){
-   if(this.image!==null && this.texture===null){
+   if(this.image!==null && this.textureName===null){
       // load the image as a texture
-      texture.load(program.getContext());
-   } else if(this.image===null && this.texture===null){
+      this.mapToContext(program.getContext());
+   } else if(this.image===null && this.textureName===null){
       var thisObj=this;
       var prog=program;
       this.loadImage().then(function(e){
         // try again loading the image
-        this.bind(program);
+        thisObj.bind(program);
       });
       return;
    }
-   if (this.texture!==null) {
+   if (this.textureName!==null) {
       var uniforms={};
       uniforms["useTexture"]=1;
       program.setUniforms(uniforms);
-      program.getContext().activeTexture(program.getContext().TEXTURE0);
-      program.getContext().bindTexture(program.getContext().TEXTURE_2D,
-        this.texture);
+      var ctx=program.getContext()
+      ctx.activeTexture(ctx.TEXTURE0);
+      ctx.bindTexture(ctx.TEXTURE_2D,
+        this.textureName);
     }
 }
-window["TextureManager"]=TextureManager;
-})(window);
+////////////////////////////////////////
 
 function Scene3D(context){
  this.context=context;
@@ -1189,9 +893,8 @@ function Scene3D(context){
  this.program=new ShaderProgram(context);
  this.shapes=[];
  this.clearColor=[0,0,0,1];
- this.textureManager=new TextureManager(context);
+ this.textureCache={};
  this.context.enable(context.BLEND);
- //this.context.enable(context.CULL_FACE);
  this._projectionMatrix=GLMath.mat4identity();
  this._viewMatrix=GLMath.mat4identity();
  this._matrixDirty=true;
@@ -1254,7 +957,7 @@ Scene3D.prototype._setClearColor=function(){
   return this;
 }
 Scene3D.prototype.setClearColor=function(r,g,b,a){
- this.clearColor=GLUtil.toGLColor(r,g,b,a);
+ this.clearColor=GLUtil["toGLColor"](r,g,b,a);
  return this._setClearColor();
 }
 Scene3D.prototype.getColor=function(r,g,b,a){
@@ -1265,17 +968,18 @@ Scene3D.prototype.getMaterialParams=function(am,di,sp,sh){
 }
 Scene3D.prototype.loadTexture=function(name){
  // Returns a promise with a Texture object result if it resolves
- return this.textureManager.loadTexture(name);
+ return Texture.loadTexture(name, this.textureCache);
 }
-Scene3D.prototype.loadTextureAndMap=function(name){
+Scene3D.prototype.loadAndMapTexture=function(name){
  // Returns a promise with a Texture object result if it resolves
- return this.textureManager.loadTextureAndMap(name, this.context);
+ return Texture.loadAndMapTexture(
+   name, this.context, this.textureCache);
 }
-Scene3D.prototype.loadTexturesAndMap=function(textureFiles, resolve, reject){
+Scene3D.prototype.loadAndMapTextures=function(textureFiles, resolve, reject){
  var promises=[];
  for(var i=0;i<textureFiles.length;i++){
   var objf=textureFiles[i];
-  var p=this.loadTextureAndMap(objf);
+  var p=this.loadAndMapTexture(objf);
   promises.push(p);
  }
  return GLUtil.getPromiseResults(promises, resolve, reject);
@@ -1354,7 +1058,7 @@ Shape.prototype.getDrawLines=function(){
  return this.drawLines;
 }
 Shape.prototype.setColor=function(r,g,b,a){
- var color=GLUtil.toGLColor(r,g,b,a);
+ var color=GLUtil["toGLColor"](r,g,b,a);
  this.material=MaterialShade.fromColor(color);
  return this;
 }
