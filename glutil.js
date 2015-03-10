@@ -679,7 +679,7 @@ Mesh._recalcNormals=function(vertices,faces,stride){
     vertices[i+4]=0.0
     vertices[i+5]=0.0
   }
-  for(var i=0;i<vertices.length;i+=3){
+  for(var i=0;i<faces.length;i+=3){
     var v1=faces[i]*stride
     var v2=faces[i+1]*stride
     var v3=faces[i+2]*stride
@@ -1025,6 +1025,23 @@ Scene3D.prototype.render=function(){
   this.context.flush();
 }
 
+function MultiShape(){
+ this.shapes=[];
+}
+MultiShape.prototype.setScale=function(scale){
+ for(var i=0;i<this.shapes.length;i++){
+  this.shapes[i].setScale(scale);
+ }
+}
+MultiShape.prototype.render=function(program){
+ for(var i=0;i<this.shapes.length;i++){
+  this.shapes[i].render(program);
+ }
+}
+MultiShape.prototype.add=function(shape){
+ this.shapes.push(shape);
+}
+
 function Shape(context,vertfaces){
   if(vertfaces==null)throw new Error("vertfaces is null");
   if(vertfaces.constructor==Mesh){
@@ -1065,17 +1082,6 @@ Shape.prototype.setColor=function(r,g,b,a){
 Shape.prototype.setMaterial=function(material){
  this.material=material;
  return this;
-}
-Shape.prototype._updateMatrix=function(){
-  this._matrixDirty=false;
-  this.matrix=GLMath.mat4scaled(this.scale);
-  if(this.angle!=0){
-    this.matrix=GLMath.mat4rotate(this.matrix,this.angle,this.vector);
-  }
-  this.matrix[12]+=this.position[0];
-  this.matrix[13]+=this.position[1];
-  this.matrix[14]+=this.position[2];
-  this._invTransModel3=GLMath.mat4inverseTranspose3(this.matrix);
 }
 Shape.prototype.setScale=function(x,y,z){
   if(x!=null && y==null && z==null){
@@ -1127,6 +1133,18 @@ Shape.prototype.render=function(program){
     this.vertfaces.facesLength,
     this.vertfaces.type, 0);
 };
+///////////////
+Shape.prototype._updateMatrix=function(){
+  this._matrixDirty=false;
+  this.matrix=GLMath.mat4scaled(this.scale);
+  if(this.angle!=0){
+    this.matrix=GLMath.mat4rotate(this.matrix,this.angle,this.vector);
+  }
+  this.matrix[12]+=this.position[0];
+  this.matrix[13]+=this.position[1];
+  this.matrix[14]+=this.position[2];
+  this._invTransModel3=GLMath.mat4inverseTranspose3(this.matrix);
+}
 /////////////
 Shape._vertexAttrib=function(context, attrib, size, type, stride, offset){
   if(attrib!==null){
