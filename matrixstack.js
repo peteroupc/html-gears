@@ -18,8 +18,8 @@ at: http://upokecenter.dreamhosters.com/articles/donate-now-2/
 	if (exports.MatrixStack) { return; }
 /*
 MatrixStack is a class that mimics the functionality
-of OpenGL matrix stacks.  It also implements most of
-the matrix functions found in OpenGL 1.1.
+of legacy OpenGL matrix stacks.  It also implements most of
+the matrix functions found in legacy OpenGL.
 */
 function MatrixStack(){
  this.stack=[
@@ -162,7 +162,7 @@ ftan*m[4], ftan*m[5], ftan*m[6], ftan*m[7],
  m[8]*v3, m[9]*v3, m[10]*v3, m[11]*v3]
 return this;
 }
-MatrixStack.prototype.pickMatrix2=function(wx,wy,ww,wh,vp){
+MatrixStack.prototype.pickMatrix=function(wx,wy,ww,wh,vp){
  var invww=1.0/ww;
  var invwh=1.0/wh;
  wx-=vp[0]

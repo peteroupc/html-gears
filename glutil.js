@@ -116,7 +116,7 @@ createCube:function(){
  // Position X, Y, Z, normal NX, NY, NZ, texture U, V
  var vertices=[-1.0,-1.0,1.0,1.0,0.0,0.0,1.0,1.0,-1.0,1.0,1.0,1.0,0.0,0.0,1.0,0.0,-1.0,1.0,-1.0,1.0,0.0,0.0,0.0,0.0,-1.0,-1.0,-1.0,1.0,0.0,0.0,0.0,1.0,1.0,-1.0,-1.0,-1.0,0.0,0.0,1.0,1.0,1.0,1.0,-1.0,-1.0,0.0,0.0,1.0,0.0,1.0,1.0,1.0,-1.0,0.0,0.0,0.0,0.0,1.0,-1.0,1.0,-1.0,0.0,0.0,0.0,1.0,1.0,-1.0,-1.0,0.0,1.0,0.0,1.0,1.0,1.0,-1.0,1.0,0.0,1.0,0.0,1.0,0.0,-1.0,-1.0,1.0,0.0,1.0,0.0,0.0,0.0,-1.0,-1.0,-1.0,0.0,1.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,-1.0,0.0,1.0,1.0,1.0,1.0,-1.0,0.0,-1.0,0.0,1.0,0.0,-1.0,1.0,-1.0,0.0,-1.0,0.0,0.0,0.0,-1.0,1.0,1.0,0.0,-1.0,0.0,0.0,1.0,-1.0,-1.0,-1.0,0.0,0.0,1.0,1.0,1.0,-1.0,1.0,-1.0,0.0,0.0,1.0,1.0,0.0,1.0,1.0,-1.0,0.0,0.0,1.0,0.0,0.0,1.0,-1.0,-1.0,0.0,0.0,1.0,0.0,1.0,1.0,-1.0,1.0,0.0,0.0,-1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,-1.0,1.0,0.0,-1.0,1.0,1.0,0.0,0.0,-1.0,0.0,0.0,-1.0,-1.0,1.0,0.0,0.0,-1.0,0.0,1.0]
  var faces=[0,1,2,0,2,3,4,5,6,4,6,7,8,9,10,8,10,11,12,13,14,12,14,15,16,17,18,16,18,19,20,21,22,20,22,23]
- return new Mesh(vertices,faces,Mesh.VEC3DNORMALUV);
+ return new Mesh(vertices,faces,Mesh.NORMALS_BIT | Mesh.TEXCOORDS_BIT);
 },
 createSphere:function(radius,div){
 var radius = 1.0;
@@ -223,7 +223,8 @@ if(!newStrip){
 newStrip=false;
 }
 }
-return new Mesh(vertices,tris,Mesh.VEC3DNORMALUV);
+return new Mesh(vertices,tris,
+  Mesh.NORMALS_BIT | Mesh.TEXCOORDS_BIT);
 },
 loadFileFromUrl:function(url){
  var urlstr=url;
@@ -641,43 +642,130 @@ MaterialShade.prototype.bind=function(program){
 }
 
 function Mesh(vertices,faces,format){
- this.vertices=vertices;
- this.faces=faces;
- this.format=format;
-}
-Mesh.VEC2D=2;
-Mesh.VEC3D=3;
-Mesh.VEC3DNORMALUV=6;
-Mesh.VEC3DNORMAL=5;
-Mesh.VEC3DCOLOR=7;
-Mesh.prototype.bind=function(context){
- var vertbuffer=context.createBuffer();
- var facebuffer=context.createBuffer();
- context.bindBuffer(context.ARRAY_BUFFER, vertbuffer);
- context.bindBuffer(context.ELEMENT_ARRAY_BUFFER, facebuffer);
- context.bufferData(context.ARRAY_BUFFER,
-   new Float32Array(this.vertices), context.STATIC_DRAW);
- var type=context.UNSIGNED_SHORT;
- if(this.vertices.length>=65536 || this.faces.length>=65536){
-  type=context.UNSIGNED_INT;
-  context.bufferData(context.ELEMENT_ARRAY_BUFFER,
-    new Uint32Array(this.faces), context.STATIC_DRAW);
- } else if(this.vertices.length<=256 && this.faces.length<=256){
-  type=context.UNSIGNED_BYTE;
-  context.bufferData(context.ELEMENT_ARRAY_BUFFER,
-    new Uint8Array(this.faces), context.STATIC_DRAW);
- } else {
-  context.bufferData(context.ELEMENT_ARRAY_BUFFER,
-    new Uint16Array(this.faces), context.STATIC_DRAW);
+ this.vertices=vertices||[];
+ this.tris=faces||[];
+ this.stride=3;
+ this.builderMode=Mesh.TRIANGLES;
+ this.normal=[0,0,0];
+ this.color=[0,0,0];
+ this.texCoord=[0,0];
+ this.startIndex=0;
+ this.attributeBits=(format==null) ? 0 : format;
+ this.mode=function(m){
+  if(this.builderMode!=m){
+   this.builderMode=m;
+   this.startIndex=this.vertices.length;
+  }
+  return this;
  }
- return {verts:vertbuffer, faces:facebuffer,
-   facesLength: this.faces.length, type:type, format:this.format};
+ this._rebuildVertices=function(newAttributes){
+  var oldBits=this.attributeBits;
+  var newBits=oldBits|newAttributes;
+  if(newBits==oldBits)return;
+  var newVertices=[];
+  var newStride=3;
+  if((newBits&Mesh.COLORS_BIT)!=0)
+   newStride+=3;
+  if((newBits&Mesh.NORMALS_BIT)!=0)
+   newStride+=3;
+  if((newBits&Mesh.TEXCOORDS_BIT)!=0)
+   newStride+=2;
+  for(var i=0;i<this.vertices.length;i+=this.stride){
+   var vx=this.vertices[i];
+   var vy=this.vertices[i+1];
+   var vz=this.vertices[i+2];
+   var s=i+3;
+   newVertices.push(vx,vy,vz);
+   if((newBits&Mesh.NORMALS_BIT)!=0){
+    if((oldBits&Mesh.NORMALS_BIT)!=0){
+     var x=this.vertices[s];
+     var y=this.vertices[s+1];
+     var z=this.vertices[s+2];
+     s+=3;
+     newVertices.push(x,y,z);
+    } else {
+     newVertices.push(0,0,0);
+    }
+   }
+   if((newBits&Mesh.COLORS_BIT)!=0){
+    if((oldBits&Mesh.COLORS_BIT)!=0){
+     var r=this.vertices[s];
+     var g=this.vertices[s+1];
+     var b=this.vertices[s+2];
+     s+=3;
+     newVertices.push(r,g,b);
+    } else {
+     newVertices.push(0,0,0);
+    }
+   }
+   if((newBits&Mesh.TEXCOORDS_BIT)!=0){
+    if((oldBits&Mesh.TEXCOORDS_BIT)!=0){
+     var u=this.vertices[s];
+     var v=this.vertices[s+1];
+     s+=2;
+     newVertices.push(u,v);
+    } else {
+     newVertices.push(0,0);
+    }
+   }
+  }
+  this.stride=newStride;
+  this.vertices=newVertices;
+  this.attributeBits=newBits;
+ }
+ this.normal3=function(x,y,z){
+  this.normal[0]=x;
+  this.normal[1]=y;
+  this.normal[2]=z;
+  this._rebuildVertices(Mesh.NORMALS_BIT);
+  return this;
+ }
+ this.color3=function(x,y,z){
+  this.color[0]=x;
+  this.color[1]=y;
+  this.color[2]=z;
+  this._rebuildVertices(Mesh.COLORS_BIT);
+  return this;
+ }
+ this.texCoord2=function(u,v){
+  this.texCoord[0]=u;
+  this.texCoord[1]=v;
+  this._rebuildVertices(Mesh.TEXCOORDS_BIT);
+  return this;
+ }
+ this.vertex3=function(x,y,z){
+  this.vertices.push(x,y,z);
+  if((this.attributeBits&Mesh.COLORS_BIT)!=0){
+   this.vertices.push(this.color[0],this.color[1],this.color[2]);
+  }
+  if((this.attributeBits&Mesh.NORMALS_BIT)!=0){
+   this.vertices.push(this.normal[0],this.normal[1],this.normal[2]);
+  }
+  if((this.attributeBits&Mesh.TEXCOORDS_BIT)!=0){
+   this.vertices.push(this.texCoords[0],this.texCoords[1],this.texCoords[2]);
+  }
+  if(this.builderMode==Mesh.QUAD_STRIP &&
+     (this.vertices.length-this.startIndex)>=this.stride*4 &&
+     (this.vertices.length-this.startIndex)%(this.stride*2)==0){
+   var index=(this.vertices.length/this.stride)-4;
+   this.tris.push(index,index+1,index+2,index+2,index+1,index+3);
+  } else if(this.builderMode==Mesh.QUADS &&
+     (this.vertices.length-this.startIndex)%(this.stride*4)==0){
+   var index=(this.vertices.length/this.stride)-4;
+   this.tris.push(index,index+1,index+2,index+2,index+3,index);
+  } else if(this.builderMode==Mesh.TRIANGLES &&
+     (this.vertices.length-this.startIndex)%(this.stride*3)==0){
+   var index=(this.vertices.length/this.stride)-3;
+   this.tris.push(index,index+1,index+2);
+  }
+  return this;
+ }
 }
-Mesh._recalcNormals=function(vertices,faces,stride){
+Mesh._recalcNormals=function(vertices,faces,stride,offset){
   for(var i=0;i<vertices.length;i+=stride){
-    vertices[i+3]=0.0
-    vertices[i+4]=0.0
-    vertices[i+5]=0.0
+    vertices[i+offset]=0.0
+    vertices[i+offset+1]=0.0
+    vertices[i+offset+2]=0.0
   }
   for(var i=0;i<faces.length;i+=3){
     var v1=faces[i]*stride
@@ -697,41 +785,134 @@ Mesh._recalcNormals=function(vertices,faces,stride){
       y*=len;
       z*=len;
       // add normalized normal to each vertex of the face
-      vertices[v1+3]+=x
-      vertices[v1+4]+=y
-      vertices[v1+5]+=z
-      vertices[v2+3]+=x
-      vertices[v2+4]+=y
-      vertices[v2+5]+=z
-      vertices[v3+3]+=x
-      vertices[v3+4]+=y
-      vertices[v3+5]+=z
+      vertices[v1+offset]+=x
+      vertices[v1+offset+1]+=y
+      vertices[v1+offset+2]+=z
+      vertices[v2+offset]+=x
+      vertices[v2+offset+1]+=y
+      vertices[v2+offset+2]+=z
+      vertices[v3+offset]+=x
+      vertices[v3+offset+1]+=y
+      vertices[v3+offset+2]+=z
     }
   }
   // Normalize each normal of the vertex
   for(var i=0;i<vertices.length;i+=stride){
-    var x=vertices[i+3];
-    var y=vertices[i+4];
-    var z=vertices[i+5];
+    var x=vertices[i+offset];
+    var y=vertices[i+offset+1];
+    var z=vertices[i+offset+2];
     len=Math.sqrt(x*x+y*y+z*z);
     if(len){
       len=1.0/len;
-      vertices[i+3]=x*len;
-      vertices[i+4]=y*len;
-      vertices[i+5]=z*len;
+      vertices[i+offset]=x*len;
+      vertices[i+offset+1]=y*len;
+      vertices[i+offset+2]=z*len;
     }
   }
 }
 Mesh.prototype.recalcNormals=function(){
-  if(this.format==Mesh.VEC3DNORMAL){
-   Mesh._recalcNormals(this.vertices,this.faces,6);
-  } else if(this.format==Mesh.VEC3DNORMALUV){
-   Mesh._recalcNormals(this.vertices,this.faces,8);
-  } else {
-   throw new Error("not supported");
-  }
+  this._rebuildVertices(Mesh.NORMALS_BIT);
+  Mesh._recalcNormals(this.vertices,this.tris,
+    this.stride,3);
   return this;
 };
+ Mesh.getStride=function(format){
+  if(format<0 || format>8)return -1;
+  return [3,6,6,9,5,8,8,11][format];
+ }
+ Mesh.normalOffset=function(format){
+  if(format<0 || format>8)return -1;
+  return [-1,3,-1,3,-1,3,-1,3][format];
+ }
+ Mesh.colorOffset=function(format){
+  if(format<0 || format>8)return -1;
+  return [-1,-1,3,6,-1,-1,3,6][format];
+ }
+Mesh.texCoordOffset=function(format){
+  if(format<0 || format>8)return -1;
+  return [-1,-1,-1,-1,3,6,6,9][format];
+}
+Mesh.NORMALS_BIT = 1;
+Mesh.COLORS_BIT = 2;
+Mesh.TEXCOORDS_BIT = 4;
+Mesh.TRIANGLES = 0;
+Mesh.QUAD_STRIP = 0;
+Mesh.QUADS = 1;
+
+function BufferedMesh(mesh, context){
+ var vertbuffer=context.createBuffer();
+ var facebuffer=context.createBuffer();
+ context.bindBuffer(context.ARRAY_BUFFER, vertbuffer);
+ context.bindBuffer(context.ELEMENT_ARRAY_BUFFER, facebuffer);
+ context.bufferData(context.ARRAY_BUFFER,
+   new Float32Array(mesh.vertices), context.STATIC_DRAW);
+ var type=context.UNSIGNED_SHORT;
+ if(mesh.vertices.length>=65536 || mesh.tris.length>=65536){
+  type=context.UNSIGNED_INT;
+  context.bufferData(context.ELEMENT_ARRAY_BUFFER,
+    new Uint32Array(mesh.tris), context.STATIC_DRAW);
+ } else if(mesh.vertices.length<=256 && mesh.tris.length<=256){
+  type=context.UNSIGNED_BYTE;
+  context.bufferData(context.ELEMENT_ARRAY_BUFFER,
+    new Uint8Array(mesh.tris), context.STATIC_DRAW);
+ } else {
+  context.bufferData(context.ELEMENT_ARRAY_BUFFER,
+    new Uint16Array(mesh.tris), context.STATIC_DRAW);
+ }
+  this.verts=vertbuffer;
+  this.faces=facebuffer;
+  this.facesLength=mesh.tris.length;
+  this.type=type;
+  this.format=mesh.attributeBits;
+  this.context=context;
+}
+BufferedMesh._vertexAttrib=function(context, attrib, size, type, stride, offset){
+  if(attrib!==null){
+    context.enableVertexAttribArray(attrib);
+    context.vertexAttribPointer(attrib,size,type,false,stride,offset);
+  }
+}
+BufferedMesh.prototype.unload=function(){
+ if(this.verts!=null)
+  this.context.deleteBuffer(this.verts);
+ if(this.faces!=null)
+  this.context.deleteBuffer(this.faces);
+ this.verts=null;
+ this.faces=null;
+}
+BufferedMesh.prototype.bind=function(program){
+  var context=program.getContext();
+  if(this.verts==null || this.faces==null){
+   throw new Error("mesh buffer unloaded");
+  }
+  if(context!=this.context){
+   throw new Error("can't bind mesh: context mismatch");
+  }
+  context.bindBuffer(context.ARRAY_BUFFER, this.verts);
+  context.bindBuffer(context.ELEMENT_ARRAY_BUFFER, this.faces);
+  var format=this.format;
+  var stride=Mesh.getStride(format);
+  BufferedMesh._vertexAttrib(context,
+    program.get("position"), 3, context.FLOAT, stride*4, 0);
+  var offset=Mesh.normalOffset(format);
+  if(offset>=0){
+   BufferedMesh._vertexAttrib(context,
+    program.get("normal"), 3,
+    context.FLOAT, stride*4, offset*4);
+  }
+  offset=Mesh.colorOffset(format);
+  if(offset>=0){
+   BufferedMesh._vertexAttrib(context,
+    program.get("colorAttr"), 3,
+    context.FLOAT, stride*4, offset*4);
+  }
+  offset=Mesh.texCoordOffset(format);
+  if(offset>=0){
+   BufferedMesh._vertexAttrib(context,
+     program.get("textureUV"), 2,
+    context.FLOAT, stride*4, offset*4);
+  }
+}
 
 var Texture=function(name){
  this.textureImage=null;
@@ -1029,7 +1210,7 @@ Scene3D.prototype.setLookAt=function(eye, center, up){
  return this;
 }
 Scene3D.prototype.addShape=function(shape){
- this.shapes.push(shape);
+ this.shapes.push(shape.loadMesh(this.context));
  return this;
 }
 Scene3D.prototype.setLightSource=function(light){
@@ -1059,18 +1240,20 @@ MultiShape.prototype.render=function(program){
   this.shapes[i].render(program);
  }
 }
+MultiShape.prototype.loadMesh=function(context){
+ for(var i=0;i<this.shapes.length;i++){
+  this.shapes[i].loadMesh(context);
+ }
+ return this;
+}
 MultiShape.prototype.add=function(shape){
  this.shapes.push(shape);
 }
 
-function Shape(context,vertfaces){
-  if(vertfaces==null)throw new Error("vertfaces is null");
-  if(vertfaces.constructor==Mesh){
-   this.vertfaces=vertfaces.bind(context);
-  } else {
-   this.vertfaces=vertfaces;
-  }
-  this.context=context;
+function Shape(mesh){
+  if(mesh==null)throw new Error("mesh is null");
+  this.mesh=mesh;
+  this.vertfaces=null;
   this.material=new MaterialShade();
   this.scale=[1,1,1];
   this.angle=0;
@@ -1084,6 +1267,12 @@ function Shape(context,vertfaces){
 }
 Shape.prototype.setDrawLines=function(value){
  this.drawLines=value;
+ return this;
+}
+Shape.prototype.loadMesh=function(context){
+ if(!this.vertfaces){
+  this.vertfaces=new BufferedMesh(this.mesh,context);
+ }
  return this;
 }
 Shape.prototype.setMatrix=function(value){
@@ -1130,14 +1319,13 @@ Shape.prototype.render=function(program){
    this.material.bind(program);
   }
   // Bind vertex attributes
-  Shape._bind(this.context,this.vertfaces,
-    program.get("position"),
-    program.get("normal"),
-    program.get("textureUV"),
-    program.get("colorAttr"));
+  if(this.vertfaces==null){
+   this.vertfaces=BufferedMesh.fromMesh(mesh,program.getContext());
+  }
+  this.vertfaces.bind(program);
   // Set world matrix
-  var uniformMatrix=program.get("world");
   var uniforms={};
+  var uniformMatrix=program.get("world");
   if(uniformMatrix!==null){
    if(this._matrixDirty){
     this._updateMatrix();
@@ -1145,12 +1333,13 @@ Shape.prototype.render=function(program){
    uniforms["world"]=this.matrix;
    uniforms["worldInverseTrans3"]=this._invTransModel3;
   }
-  uniforms["useColorAttr"]=(this.vertfaces.format==Mesh.VEC3DCOLOR) ?
+  uniforms["useColorAttr"]=((this.vertfaces.format&Mesh.COLORS_BIT)!=0) ?
      1.0 : 0.0;
   program.setUniforms(uniforms);
+  var context=program.getContext();
   // Draw the shape
-  this.context.drawElements(
-    this.drawLines ? this.context.LINES : this.context.TRIANGLES,
+  context.drawElements(
+    this.drawLines ? context.LINES : context.TRIANGLES,
     this.vertfaces.facesLength,
     this.vertfaces.type, 0);
 };
@@ -1167,38 +1356,3 @@ Shape.prototype._updateMatrix=function(){
   this._invTransModel3=GLMath.mat4inverseTranspose3(this.matrix);
 }
 /////////////
-Shape._vertexAttrib=function(context, attrib, size, type, stride, offset){
-  if(attrib!==null){
-    context.enableVertexAttribArray(attrib);
-    context.vertexAttribPointer(attrib,size,type,false,stride,offset);
-  }
-}
-Shape._bind=function(context, vertfaces,
-  attribPosition, attribNormal, attribUV,attribColor){
-  context.bindBuffer(context.ARRAY_BUFFER, vertfaces.verts);
-  context.bindBuffer(context.ELEMENT_ARRAY_BUFFER, vertfaces.faces);
-  var format=vertfaces.format;
-  if(format==Mesh.VEC3DNORMAL){
-   Shape._vertexAttrib(context,attribPosition, 3, context.FLOAT, 6*4, 0);
-   Shape._vertexAttrib(context,attribNormal, 3,
-    context.FLOAT, 6*4, 3*4);
-  } else if(format==Mesh.VEC3DNORMALUV){
-   Shape._vertexAttrib(context,attribPosition, 3,
-    context.FLOAT, 8*4, 0);
-   Shape._vertexAttrib(context,attribNormal, 3,
-    context.FLOAT, 8*4, 3*4);
-   Shape._vertexAttrib(context,attribUV, 2,
-    context.FLOAT, 8*4, 6*4);
-  } else if(format==Mesh.VEC3DCOLOR){
-   Shape._vertexAttrib(context,attribPosition, 3,
-    context.FLOAT, 6*4, 0);
-   Shape._vertexAttrib(context,attribColor, 3,
-    context.FLOAT, 6*4, 3*4);
-  } else if(format==Mesh.VEC2D){
-   Shape._vertexAttrib(context,attribPosition, 2,
-     context.FLOAT, 2*4, 0);
-  } else if(format==Mesh.VEC3D){
-   Shape._vertexAttrib(context,attribPosition, 3,
-     context.FLOAT, 3*4, 0);
-  }
-}

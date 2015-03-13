@@ -15,46 +15,6 @@ function createContext(){
   return GLUtil.get3DContext(canvasElement);
 }
 
-function TriangleBuilder(){
- this.vertices=[];
- this.tris=[];
- this.stride=6;
- this.builderMode=TriangleBuilder.QUAD_STRIP;
- this.normal=[0,0,0];
- this.startIndex=0;
- this.mode=function(m){
-  this.builderMode=m;
-  this.startIndex=this.vertices.length;
- }
- this.normal3=function(x,y,z){
-  this.normal[0]=x;
-  this.normal[1]=y;
-  this.normal[2]=z;
-  return this;
- }
- this.vertex3=function(x,y,z){
-  this.vertices.push(x,y,z,this.normal[0],this.normal[1],
-   this.normal[2]);
-  if(this.builderMode==TriangleBuilder.QUAD_STRIP &&
-     (this.vertices.length-this.startIndex)>=this.stride*4 &&
-     (this.vertices.length-this.startIndex)%(this.stride*2)==0){
-   var index=(this.vertices.length/this.stride)-4;
-   this.tris.push(index,index+1,index+2,index+2,index+1,index+3);
-  } else if(this.builderMode==TriangleBuilder.QUADS &&
-     (this.vertices.length-this.startIndex)%(this.stride*4)==0){
-   var index=(this.vertices.length/this.stride)-4;
-   this.tris.push(index,index+1,index+2,index+2,index+3,index);
-  }
-  return this;
- }
- this.build=function(){
-  return new Mesh(this.vertices,this.tris,
-   Mesh.VEC3DNORMAL);
- }
-}
-TriangleBuilder.QUAD_STRIP = 0;
-TriangleBuilder.QUADS = 1;
-
 function createGear(inner_radius, outer_radius, width, teeth, tooth_depth)
 {
 var i;
@@ -65,87 +25,87 @@ r0 = inner_radius;
 r1 = outer_radius - tooth_depth/2.0;
 r2 = outer_radius + tooth_depth/2.0;
 da = 2.0*Math.PI / teeth / 4.0;
-var builder=new TriangleBuilder();
-builder.normal3( 0.0, 0.0, 1.0 );
+var mesh=new Mesh();
+mesh.normal3( 0.0, 0.0, 1.0 );
 /* draw front face */
-builder.mode(TriangleBuilder.QUAD_STRIP );
+mesh.mode(Mesh.QUAD_STRIP );
 for (i=0;i<=teeth;i++) {
 angle = i * 2.0*Math.PI / teeth;
-builder.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), width*0.5 );
-builder.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), width*0.5 );
-builder.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), width*0.5 );
-builder.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), width*0.5 );
+mesh.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), width*0.5 );
+mesh.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), width*0.5 );
+mesh.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), width*0.5 );
+mesh.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), width*0.5 );
 }
 
 /* draw front sides of teeth */
-builder.mode(TriangleBuilder.QUADS );
+mesh.mode(Mesh.QUADS );
 da = 2.0*Math.PI / teeth / 4.0;
 for (i=0;i<teeth;i++) {
 angle = i * 2.0*Math.PI / teeth;
-builder.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), width*0.5 );
-builder.vertex3( r2*Math.cos(angle+da), r2*Math.sin(angle+da), width*0.5 );
-builder.vertex3( r2*Math.cos(angle+2*da), r2*Math.sin(angle+2*da), width*0.5 );
-builder.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), width*0.5 );
+mesh.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), width*0.5 );
+mesh.vertex3( r2*Math.cos(angle+da), r2*Math.sin(angle+da), width*0.5 );
+mesh.vertex3( r2*Math.cos(angle+2*da), r2*Math.sin(angle+2*da), width*0.5 );
+mesh.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), width*0.5 );
 }
 
-builder.normal3( 0.0, 0.0, -1.0 );
+mesh.normal3( 0.0, 0.0, -1.0 );
 /* draw back face */
-builder.mode(TriangleBuilder.QUAD_STRIP );
+mesh.mode(Mesh.QUAD_STRIP );
 for (i=0;i<=teeth;i++) {
 angle = i * 2.0*Math.PI / teeth;
-builder.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), -width*0.5 );
-builder.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), -width*0.5 );
-builder.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), -width*0.5 );
-builder.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), -width*0.5 );
+mesh.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), -width*0.5 );
+mesh.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), -width*0.5 );
+mesh.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), -width*0.5 );
+mesh.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), -width*0.5 );
 }
 
 /* draw back sides of teeth */
-builder.mode(TriangleBuilder.QUADS );
+mesh.mode(Mesh.QUADS );
 da = 2.0*Math.PI / teeth / 4.0;
 for (i=0;i<teeth;i++) {
 angle = i * 2.0*Math.PI / teeth;
-builder.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), -width*0.5 );
-builder.vertex3( r2*Math.cos(angle+2*da), r2*Math.sin(angle+2*da), -width*0.5 );
-builder.vertex3( r2*Math.cos(angle+da), r2*Math.sin(angle+da), -width*0.5 );
-builder.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), -width*0.5 );
+mesh.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), -width*0.5 );
+mesh.vertex3( r2*Math.cos(angle+2*da), r2*Math.sin(angle+2*da), -width*0.5 );
+mesh.vertex3( r2*Math.cos(angle+da), r2*Math.sin(angle+da), -width*0.5 );
+mesh.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), -width*0.5 );
 }
 
 /* draw outward faces of teeth */
-builder.mode(TriangleBuilder.QUAD_STRIP );
+mesh.mode(Mesh.QUAD_STRIP );
 for (i=0;i<teeth;i++) {
 angle = i * 2.0*Math.PI / teeth;
-builder.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), width*0.5 );
-builder.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), -width*0.5 );
+mesh.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), width*0.5 );
+mesh.vertex3( r1*Math.cos(angle), r1*Math.sin(angle), -width*0.5 );
 u = r2*Math.cos(angle+da) - r1*Math.cos(angle);
 v = r2*Math.sin(angle+da) - r1*Math.sin(angle);
 len = Math.sqrt( u*u + v*v );
 u /= len;
 v /= len;
-builder.normal3( v, -u, 0.0 );
-builder.vertex3( r2*Math.cos(angle+da), r2*Math.sin(angle+da), width*0.5 );
-builder.vertex3( r2*Math.cos(angle+da), r2*Math.sin(angle+da), -width*0.5 );
-builder.normal3( Math.cos(angle), Math.sin(angle), 0.0 );
-builder.vertex3( r2*Math.cos(angle+2*da), r2*Math.sin(angle+2*da), width*0.5 );
-builder.vertex3( r2*Math.cos(angle+2*da), r2*Math.sin(angle+2*da), -width*0.5 );
+mesh.normal3( v, -u, 0.0 );
+mesh.vertex3( r2*Math.cos(angle+da), r2*Math.sin(angle+da), width*0.5 );
+mesh.vertex3( r2*Math.cos(angle+da), r2*Math.sin(angle+da), -width*0.5 );
+mesh.normal3( Math.cos(angle), Math.sin(angle), 0.0 );
+mesh.vertex3( r2*Math.cos(angle+2*da), r2*Math.sin(angle+2*da), width*0.5 );
+mesh.vertex3( r2*Math.cos(angle+2*da), r2*Math.sin(angle+2*da), -width*0.5 );
 u = r1*Math.cos(angle+3*da) - r2*Math.cos(angle+2*da);
 v = r1*Math.sin(angle+3*da) - r2*Math.sin(angle+2*da);
-builder.normal3( v, -u, 0.0 );
-builder.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), width*0.5 );
-builder.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), -width*0.5 );
-builder.normal3( Math.cos(angle), Math.sin(angle), 0.0 );
+mesh.normal3( v, -u, 0.0 );
+mesh.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), width*0.5 );
+mesh.vertex3( r1*Math.cos(angle+3*da), r1*Math.sin(angle+3*da), -width*0.5 );
+mesh.normal3( Math.cos(angle), Math.sin(angle), 0.0 );
 }
-builder.vertex3( r1*Math.cos(0), r1*Math.sin(0), width*0.5 );
-builder.vertex3( r1*Math.cos(0), r1*Math.sin(0), -width*0.5 );
+mesh.vertex3( r1*Math.cos(0), r1*Math.sin(0), width*0.5 );
+mesh.vertex3( r1*Math.cos(0), r1*Math.sin(0), -width*0.5 );
 
 /* draw inside radius cylinder */
-builder.mode(TriangleBuilder.QUAD_STRIP );
+mesh.mode(Mesh.QUAD_STRIP );
 for (i=0;i<=teeth;i++) {
 angle = i * 2.0*Math.PI / teeth;
-builder.normal3( -Math.cos(angle), -Math.sin(angle), 0.0 );
-builder.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), -width*0.5 );
-builder.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), width*0.5 );
+mesh.normal3( -Math.cos(angle), -Math.sin(angle), 0.0 );
+mesh.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), -width*0.5 );
+mesh.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), width*0.5 );
 }
-return builder.build();
+return mesh;
 }
 
 $(document).ready(function(){
@@ -155,9 +115,9 @@ $(document).ready(function(){
   var gear1=createGear(1.0, 4.0, 1.0, 20, 0.7);
   var gear2=createGear(0.5, 2.0, 2.0, 10, 0.7);
   var gear3=createGear(1.3, 2.0, 0.5, 10, 0.7);
-  gear1=new Shape(context,gear1).setColor("red");
-  gear2=new Shape(context,gear2).setColor("lime");
-  gear3=new Shape(context,gear3).setColor("blue");
+  gear1=new Shape(gear1).setColor("red");
+  gear2=new Shape(gear2).setColor("lime");
+  gear3=new Shape(gear3).setColor("blue");
   scene.addShape(gear1).addShape(gear2).addShape(gear3);
   var h=scene.getHeight()/scene.getWidth();
   scene.setProjectionMatrix(GLMath.mat4frustum(
