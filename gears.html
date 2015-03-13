@@ -1,6 +1,7 @@
 <meta charset=utf-8>
 <head>
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script type="text/javascript" src="matrixstack.js"></script>
 <script type="text/javascript" src="glmath.js"></script>
 <script type="text/javascript" src="glutil.js"></script>
 <script>
@@ -29,6 +30,7 @@ function TriangleBuilder(){
   this.normal[0]=x;
   this.normal[1]=y;
   this.normal[2]=z;
+  return this;
  }
  this.vertex3=function(x,y,z){
   this.vertices.push(x,y,z,this.normal[0],this.normal[1],
@@ -43,6 +45,7 @@ function TriangleBuilder(){
    var index=(this.vertices.length/this.stride)-4;
    this.tris.push(index,index+1,index+2,index+2,index+3,index);
   }
+  return this;
  }
  this.build=function(){
   return new Mesh(this.vertices,this.tris,
@@ -148,16 +151,13 @@ return builder.build();
 $(document).ready(function(){
   var context=createContext();
   var scene=new Scene3D(context);
-  var red=[1,0,0];
-  var green=[0,1,0];
-  var blue=[0,0,1];
   scene.setLightSource(LightSource.directionalLight([5,5,10]));
   var gear1=createGear(1.0, 4.0, 1.0, 20, 0.7);
   var gear2=createGear(0.5, 2.0, 2.0, 10, 0.7);
   var gear3=createGear(1.3, 2.0, 0.5, 10, 0.7);
-  gear1=new Shape(context,gear1).setColor(red);
-  gear2=new Shape(context,gear2).setColor(green);
-  gear3=new Shape(context,gear3).setColor(blue);
+  gear1=new Shape(context,gear1).setColor("red");
+  gear2=new Shape(context,gear2).setColor("lime");
+  gear3=new Shape(context,gear3).setColor("blue");
   scene.addShape(gear1).addShape(gear2).addShape(gear3);
   var h=scene.getHeight()/scene.getWidth();
   scene.setProjectionMatrix(GLMath.mat4frustum(
@@ -166,19 +166,25 @@ $(document).ready(function(){
   var view_rotx=20,view_roty=30,view_rotz=0;
   var angle=0;
   GLUtil.renderLoop(function(){
-   var mat=GLMath.mat4identity();
-   mat=GLMath.mat4rotate(mat,view_rotx,1,0,0);
-   mat=GLMath.mat4rotate(mat,view_roty,0,1,0);
-   mat=GLMath.mat4rotate(mat,view_rotz,0,0,1);
-   var mat2=GLMath.mat4translate(mat,-3,-2,0);
-   mat2=GLMath.mat4rotate(mat2,angle,0,0,1);
-   gear1.setMatrix(mat2);
-   mat2=GLMath.mat4translate(mat,3.1,-2,0);
-   mat2=GLMath.mat4rotate(mat2,-2*angle-9,0,0,1);
-   gear2.setMatrix(mat2);
-   mat2=GLMath.mat4translate(mat,-3.1,4.2,0);
-   mat2=GLMath.mat4rotate(mat2,-2*angle-25,0,0,1);
-   gear3.setMatrix(mat2);
+   var matrix=new MatrixStack()
+    .pushMatrix()
+    .rotate(view_rotx,1,0,0)
+    .rotate(view_roty,0,1,0)
+    .rotate(view_rotz,0,0,1)
+    .pushMatrix()
+    .translate(-3,-2,0)
+    .rotate(angle,0,0,1);
+   gear1.setMatrix(matrix.get());
+   matrix.popMatrix()
+     .pushMatrix()
+     .translate(3.1,-2,0)
+     .rotate(-2*angle-9,0,0,1);
+   gear2.setMatrix(matrix.get());
+   matrix.popMatrix()
+     .pushMatrix()
+     .translate(-3.1,4.2,0)
+     .rotate(-2*angle-25,0,0,1);
+   gear3.setMatrix(matrix.get());
    scene.render();
    angle+=4/2.0;
    view_rotx+=3/2.0;
