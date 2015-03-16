@@ -11,12 +11,13 @@ renderLoop:function(func){
   func();
   var selfRefFunc=function(){
    func();
-   GLUtil.callRequestFrame(selfRefFunc);
+   window.requestAnimationFrame(selfRefFunc);
   };
-  GLUtil.callRequestFrame(selfRefFunc);
+  window.requestAnimationFrame(selfRefFunc);
 },
 get3DOr2DContext:function(canvasElement){
   if(!canvasElement)return null;
+  if(!canvasElement.getContext)return null;
   var context=null;
   var options={antialias:true};
   try { context=canvasElement.getContext("webgl", options);
@@ -63,15 +64,6 @@ get3DContext:function(canvasElement,err){
 is3DContext:function(context){
  return context && ("compileShader" in context);
 },
-callRequestFrame:function(func){
- var raf=window.requestAnimationFrame || window.mozRequestAnimationFrame ||
-    window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
- if(raf){
-  raf(func);
- } else {
-  window.setTimeout(func,17);
- }
-},
 getPromiseResults:function(promises,
    progressResolve, progressReject){
  // Utility function that returns a promise that
@@ -112,10 +104,22 @@ getPromiseResults:function(promises,
   }
  });
 },
-createCube:function(){
+createCube:function(xSize,ySize,zSize){
  // Position X, Y, Z, normal NX, NY, NZ, texture U, V
- var vertices=[-1.0,-1.0,1.0,1.0,0.0,0.0,1.0,1.0,-1.0,1.0,1.0,1.0,0.0,0.0,1.0,0.0,-1.0,1.0,-1.0,1.0,0.0,0.0,0.0,0.0,-1.0,-1.0,-1.0,1.0,0.0,0.0,0.0,1.0,1.0,-1.0,-1.0,-1.0,0.0,0.0,1.0,1.0,1.0,1.0,-1.0,-1.0,0.0,0.0,1.0,0.0,1.0,1.0,1.0,-1.0,0.0,0.0,0.0,0.0,1.0,-1.0,1.0,-1.0,0.0,0.0,0.0,1.0,1.0,-1.0,-1.0,0.0,1.0,0.0,1.0,1.0,1.0,-1.0,1.0,0.0,1.0,0.0,1.0,0.0,-1.0,-1.0,1.0,0.0,1.0,0.0,0.0,0.0,-1.0,-1.0,-1.0,0.0,1.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,-1.0,0.0,1.0,1.0,1.0,1.0,-1.0,0.0,-1.0,0.0,1.0,0.0,-1.0,1.0,-1.0,0.0,-1.0,0.0,0.0,0.0,-1.0,1.0,1.0,0.0,-1.0,0.0,0.0,1.0,-1.0,-1.0,-1.0,0.0,0.0,1.0,1.0,1.0,-1.0,1.0,-1.0,0.0,0.0,1.0,1.0,0.0,1.0,1.0,-1.0,0.0,0.0,1.0,0.0,0.0,1.0,-1.0,-1.0,0.0,0.0,1.0,0.0,1.0,1.0,-1.0,1.0,0.0,0.0,-1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,-1.0,1.0,0.0,-1.0,1.0,1.0,0.0,0.0,-1.0,0.0,0.0,-1.0,-1.0,1.0,0.0,0.0,-1.0,0.0,1.0]
- var faces=[0,1,2,0,2,3,4,5,6,4,6,7,8,9,10,8,10,11,12,13,14,12,14,15,16,17,18,16,18,19,20,21,22,20,22,23]
+ xSize/=2.0;
+ ySize/=2.0;
+ zSize/=2.0;
+ var vertices=[
+ -xSize,-ySize,zSize,1.0,0.0,0.0,1.0,1.0,
+ -xSize,ySize,zSize,1.0,0.0,0.0,1.0,0.0,
+ -xSize,ySize,-zSize,1.0,0.0,0.0,0.0,0.0,
+ -xSize,-ySize,-zSize,1.0,0.0,0.0,0.0,1.0,
+ xSize,-ySize,-zSize,-1.0,0.0,0.0,1.0,1.0,
+ xSize,ySize,-zSize,-1.0,0.0,0.0,1.0,0.0,
+ xSize,ySize,zSize,-1.0,0.0,0.0,0.0,0.0,
+ xSize,-ySize,zSize,-1.0,0.0,0.0,0.0,1.0,xSize,-ySize,-zSize,0.0,1.0,0.0,1.0,1.0,xSize,-ySize,zSize,0.0,1.0,0.0,1.0,0.0,-xSize,-ySize,zSize,0.0,1.0,0.0,0.0,0.0,-xSize,-ySize,-zSize,0.0,1.0,0.0,0.0,1.0,xSize,ySize,zSize,0.0,-1.0,0.0,1.0,1.0,xSize,ySize,-zSize,0.0,-1.0,0.0,1.0,0.0,-xSize,ySize,-zSize,0.0,-1.0,0.0,0.0,0.0,-xSize,ySize,zSize,0.0,-1.0,0.0,0.0,1.0,-xSize,-ySize,-zSize,0.0,0.0,1.0,1.0,1.0,-xSize,ySize,-zSize,0.0,0.0,1.0,1.0,0.0,xSize,ySize,-zSize,0.0,0.0,1.0,0.0,0.0,xSize,-ySize,-zSize,0.0,0.0,1.0,0.0,1.0,xSize,-ySize,zSize,0.0,0.0,-1.0,1.0,1.0,xSize,ySize,zSize,0.0,0.0,-1.0,1.0,0.0,-xSize,ySize,zSize,0.0,0.0,-1.0,0.0,0.0,-xSize,-ySize,zSize,0.0,0.0,-1.0,0.0,1.0]
+ var faces=[0,1,2,0,2,3,4,5,6,4,6,7,8,9,10,8,10,11,12,
+ 13,14,12,14,15,16,17,18,16,18,19,20,21,22,20,22,23]
  return new Mesh(vertices,faces,Mesh.NORMALS_BIT | Mesh.TEXCOORDS_BIT);
 },
 createSphere:function(radius,div){
@@ -247,6 +251,16 @@ loadFileFromUrl:function(url){
  });
 }
 };
+
+if(!window.requestAnimationFrame){
+ window.requestAnimationFrame=window.mozRequestAnimationFrame ||
+    window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+ if(!window.requestAnimationFrame){
+  window.requestAnimationFrame=function(func){
+   window.setTimeout(func,17);
+  }
+ }
+}
 
 (function(exports){
 
@@ -381,6 +395,23 @@ if(!namedColors){
 };
 })(GLUtil);
 
+/**
+* Represents a WebGL shader program.  A shader program in
+* WebGL consists of a vertex shader (which processes vertices),
+* and a fragment shader (which processes pixels).  Shader programs
+* are specially designed for running on a graphics processing unit,
+* or GPU.
+* If compiling or linking the shader program fails, a diagnostic
+* log is output to the JavaScript console.
+*
+* @param {WebGLRenderingContext} A WebGL context associated with the
+* compiled shader program.
+* @param {String|undefined} Source text of a vertex shader, in OpenGL
+* Shading Language (GLSL).  If null, a default
+* vertex shader is used instead.
+* @param {String|undefined} Source text of a fragment shader in GLSL.
+* If null, a default fragment shader is used instead.
+*/
 var ShaderProgram=function(context, vertexShader, fragmentShader){
  if(vertexShader==null){
   vertexShader=ShaderProgram.getDefaultVertex();
@@ -421,17 +452,43 @@ var ShaderProgram=function(context, vertexShader, fragmentShader){
   this.actives=ret;
  }
 }
+/** Gets the WebGL context associated with this shader program. */
 ShaderProgram.prototype.getContext=function(){
  return this.context;
 }
+/**
+* Gets the location of the given uniform's name in this program.
+* Note that the location may change each time the shader program
+* is linked (which, in the case of ShaderProgram, currently only
+* happens upon construction).
+* @return The location of the uniform name, or null if it doesn't exist.
+*/
 ShaderProgram.prototype.get=function(name){
  return (!this.actives.hasOwnProperty(name)) ?
    null : this.actives[name];
 }
+/**
+* Makes this program the active program for the WebGL context.
+* @return {ShaderProgram} this object.
+*/
 ShaderProgram.prototype.use=function(){
  this.context.useProgram(this.program);
  return this;
 }
+/**
+*  Sets uniform variables for this program.  This method assumes
+*  that this object's program is currently active.  Uniform variables
+* are called uniform because they uniformly apply to all vertices
+* in a primitive, and are not different per vertex.
+* @param {Object} A hash of key/value pairs.  Each key is
+* the name of a uniform, and each value is the value to set
+* to that uniform.  Uniform values that are 3- or 4-element
+* vectors must be 3 or 4 elements long, respectively.  Uniforms
+* that are 4x4 matrices must by 16 elements long.  Keys to
+* uniforms that don't exist in this program are ignored.  Keys
+* where hasOwnProperty is false are also ignored.
+* @return {ShaderProgram} this object.
+*/
 ShaderProgram.prototype.setUniforms=function(uniforms){
   for(var i in uniforms){
     if(uniforms.hasOwnProperty(i)){
@@ -464,7 +521,12 @@ ShaderProgram._compileShaders=function(context, vertexShader, fragmentShader){
     context.shaderSource(shader, text);
     context.compileShader(shader);
     if (!context.getShaderParameter(shader, context.COMPILE_STATUS)) {
-      console.log(text);
+      var lines=text.split("\n")
+      // add line numbers
+      for(var i=0;i<lines.length;i++){
+       lines[i]=(i+1)+"   "+lines[i]
+      }
+      console.log(lines.join("\n"));
 	  	console.log((kind==context.VERTEX_SHADER ? "vertex: " : "fragment: ")+
         context.getShaderInfoLog(shader));
 	  	return null;
@@ -493,16 +555,6 @@ ShaderProgram._compileShaders=function(context, vertexShader, fragmentShader){
   if(fs!==null)context.deleteShader(fs);
   return program;
 };
-ShaderProgram.prototype.setLightSource=function(light){
- if(!light)return this;
- this.setUniforms({
- "sa":[light.ambient[0],light.ambient[1],light.ambient[2]],
- "lightPosition":light.position,
- "sd":light.diffuse,
- "ss":light.specular
- });
- return this;
-}
 ShaderProgram.getDefaultVertex=function(){
 var shader="" +
 "attribute vec3 position;\n" +
@@ -533,18 +585,29 @@ return shader;
 };
 ShaderProgram.getDefaultFragment=function(){
 var shader="" +
+"#ifdef GL_ES\n" +
 "precision highp float;\n" +
+"#endif\n" +
  // if shading is disabled, this is solid color instead of material diffuse
  "uniform vec3 md;\n" + // material diffuse color (0-1 each component). Is multiplied by texture/solid color.
 "#ifdef SHADING\n" +
+"struct light {\n" +
+" vec4 position; /* source light direction */\n" +
+" vec3 diffuse; /* source light diffuse color */\n" +
+"#ifdef SPECULAR\n" +
+" vec3 specular; /* source light specular color */\n" +
+"#endif\n" +
+"};\n" +
 "uniform mat4 viewInverse; /* internal */\n" +
-"uniform vec4 lightPosition;\n" + // source light direction
-"uniform vec3 sa;\n" + // source light ambient color
- "uniform vec3 ma;\n" + // material ambient color (-1 to 1 each component).
- "uniform vec3 sd;\n" + // source light diffuse color
- "uniform vec3 ss;\n" + // source light specular color
- "uniform vec3 ms;\n" + // material specular color (0-1 each comp.).  Affects how intense highlights are.
- "uniform float mshin;\n" + // material shininess
+"const int MAX_LIGHTS = "+Lights.MAX_LIGHTS+"; /* internal */\n" +
+"uniform vec3 sceneAmbient;\n" +
+"uniform light lights[MAX_LIGHTS];\n" +
+"uniform vec3 ma;\n" + // material ambient color (-1 to 1 each component).
+"uniform vec3 me;\n" + // material emission color
+"#ifdef SPECULAR\n" +
+"uniform vec3 ms;\n" + // material specular color (0-1 each comp.).  Affects how intense highlights are.
+"uniform float mshin;\n" + // material shininess
+"#endif\n" +
 "#endif\n" +
 "uniform sampler2D sampler;\n" + // texture sampler
 "uniform float useTexture;\n" + // use texture sampler rather than solid color if 1
@@ -555,6 +618,20 @@ var shader="" +
 "varying vec4 worldPositionVar;\n" +
 "varying vec3 transformedNormalVar;\n"+
 "const vec4 white=vec4(1.0,1.0,1.0,1.0);\n"+
+"vec4 calcLightPower(light lt, vec4 worldPosition){\n" +
+" vec3 sdir;\n" +
+" float attenuation;\n" +
+" if(lt.position.w == 0.0){\n" +
+"  sdir=normalize(lt.position.xyz);\n" +
+"  attenuation=1.0;\n" +
+" } else {\n" +
+"  vec3 vertexToLight=vec3(lt.position-worldPosition);\n" +
+"  float dist=length(vertexToLight);\n" +
+"  sdir=normalize(vertexToLight);\n" +
+"  attenuation=1.0;\n" +
+" }\n" +
+" return vec4(sdir,attenuation);\n" +
+"}\n" +
 "#endif\n" +
 "void main(){\n" +
 " vec4 baseColor=mix(\n"+
@@ -569,64 +646,174 @@ var shader="" +
 "  vec4(colorAttrVar,1.0), /* when useColorAttr is 1 */\n" +
 "  useColorAttr);\n" +
 "#ifdef SHADING\n" +
-"vec3 sdir;\n"+
-"float attenuation;\n"+
-"if(lightPosition.w == 0.0){\n" +
-" sdir=normalize(vec3(lightPosition));\n" +
-" attenuation=1.0;\n" +
-"} else {\n"+
-" vec3 vertexToLight=vec3(lightPosition-worldPositionVar);\n"+
-" float dist=length(vertexToLight);\n"+
-" sdir=normalize(vertexToLight);\n" +
-" attenuation=1.0;\n" +
-"}\n"+
-"float diffInt=dot(transformedNormalVar,sdir);" +
-"vec3 viewPosition=normalize(vec3(viewInverse*vec4(0,0,0,1)-worldPositionVar));\n" +
-"vec3 phong=sa*ma; /* ambient*/\n" +
-"if(diffInt>=0.0){\n" +
-"   // specular reflection\n" +
-"   phong+=(ss*ms*pow(max(dot(reflect(-sdir,transformedNormalVar)," +
-"      viewPosition),0.0),mshin));\n" +
-"}\n"+
+"#define SET_LIGHTPOWER(i) "+
+" lightPower[i]=calcLightPower(lights[i],worldPositionVar)\n" +
+"#define ADD_DIFFUSE(i) "+
+" phong+=lights[i].diffuse*max(0.0,dot(transformedNormalVar," +
+"   lightPower[i].xyz))*lightPower[i].w*materialDiffuse;\n" +
+"vec4 lightPower["+Lights.MAX_LIGHTS+"];\n";
+for(var i=0;i<Lights.MAX_LIGHTS;i++){
+ shader+="SET_LIGHTPOWER("+i+");\n";
+}
+shader+="vec3 viewPosition=normalize(vec3(viewInverse*vec4(0,0,0,1)-worldPositionVar));\n" +
+"vec3 phong=sceneAmbient*ma; /* ambient*/\n" +
+"#ifdef SPECULAR\n" +
+"// specular reflection\n" +
+"vec3 specular=vec3(0,0,0.);\n" +
+"#define ADD_SPECULAR(i) "+
+"  if(dot(transformedNormalVar,lightPower[i].xyz)>=0.0){" +
+"   specular+=pow(max(dot(reflect(-lightPower[i].xyz,transformedNormalVar)," +
+"      viewPosition),0.0),mshin)*lights[i].specular*lightPower[i].w;" +
+"  }\n";
+for(var i=0;i<Lights.MAX_LIGHTS;i++){
+ shader+="ADD_SPECULAR("+i+");\n";
+}
+shader+=" phong+=(ms*specular);\n" +
+"#endif\n" +
 " // diffuse\n"+
-" phong+=sd*md*baseColor.rgb*max(0.0,dot(transformedNormalVar,sdir))*attenuation;\n" +
+" vec3 materialDiffuse=md*baseColor.rgb;\n";
+for(var i=0;i<Lights.MAX_LIGHTS;i++){
+ shader+="ADD_DIFFUSE("+i+");\n";
+}
+shader+=" // emission\n"+
+" phong+=me;\n" +
 " baseColor=vec4(phong,baseColor.a);\n" +
 "#endif\n" +
 " gl_FragColor=baseColor;\n" +
 "}";
 return shader;
 };
+
+/** Specifies parameters for light sources.*/
 function LightSource(position, ambient, diffuse, specular) {
  this.ambient=ambient || [0,0,0,1.0]
  this.position=position ? [position[0],position[1],position[2],1.0] :[0, 0, 1, 0];
  this.diffuse=diffuse||[1,1,1];
  this.specular=specular||[1,1,1];
 };
-LightSource.directionalLight=function(position,ambient,diffuse,specular){
- var source=new LightSource()
- source.ambient=ambient || [0,0,0,1.0]
- source.position=position ? [position[0],position[1],position[2],0.0] : [0,0,1,0];
- source.diffuse=diffuse||[1,1,1];
- source.specular=specular||[1,1,1];
- return source;
-};
-LightSource.pointLight=function(position,ambient,diffuse,specular){
- var source=new LightSource()
- source.ambient=ambient || [0,0,0,1.0]
- source.position=position ? [position[0],position[1],position[2],1.0] : [0,0,0,0];
- source.diffuse=diffuse||[1,1,1];
- source.specular=specular||[1,1,1];
- return source
-};
 
-function MaterialShade(ambient, diffuse, specular,shininess) {
+/** A collection of light sources. */
+function Lights(){
+ this.lights=[new LightSource()];
+ this.sceneAmbient=[0.2,0.2,0.2];
+}
+/** Maximum number of lights supported
+   by the default shader program. */
+Lights.MAX_LIGHTS = 3;
+Lights._createLight=function(index, position, diffuse, specular,directional){
+ var lightPosition=position ? [position[0],position[1],position[2],
+   directional ? 0.0 : 1.0] : (directional ? [0,0,1,0] : [0,0,0,1]);
+ var lightDiffuse=diffuse || (index==0 ? [1,1,1] : [0,0,0]);
+ var lightSpecular=specular || (index==0 ? [1,1,1] : [0,0,0]);
+ var light=new LightSource();
+ light.ambient=[0,0,0,1.0]; // not currently used
+ light.position=lightPosition;
+ light.diffuse=lightDiffuse;
+ light.specular=lightSpecular;
+ return light;
+}
+Lights.prototype.setDirectionalLight=function(index,position, diffuse, specular){
+ this.lights[index]=Lights._createLight(index,position,diffuse,specular,true);
+ return this;
+}
+Lights.prototype.setPointLight=function(index,position, diffuse, specular){
+ this.lights[index]=Lights._createLight(index,position,diffuse,specular,false);
+ return this;
+}
+Lights.prototype.addDirectionalLight=function(position, diffuse, specular){
+ this.lights.push(Lights._createLight(this.lights.length,position,diffuse,specular,true));
+ return this;
+}
+Lights.prototype.addPointLight=function(position, diffuse, specular){
+ this.lights.push(Lights._createLight(this.lights.length,position,diffuse,specular,false));
+ return this;
+}
+
+/** Sets parameters for a shader program based on
+ the information in this light source object. */
+Lights.prototype.bind=function(program){
+ if(!program)return this;
+ var uniforms={};
+ uniforms["sceneAmbient"]=this.sceneAmbient.slice(0,3);
+ for(var i=0;i<this.lights.length;i++){
+  uniforms["lights["+i+"].diffuse"]=this.lights[i].diffuse;
+  uniforms["lights["+i+"].specular"]=this.lights[i].specular;
+  uniforms["lights["+i+"].position"]=this.lights[i].position;
+ }
+ for(var i=this.lights.length;i<Lights.MAX_LIGHTS;i++){
+  uniforms["lights["+i+"].diffuse"]=[0,0,0];
+  uniforms["lights["+i+"].specular"]=[0,0,0];
+  uniforms["lights["+i+"].position"]=[0,0,0,0];
+ }
+ program.setUniforms(uniforms);
+ return this;
+}
+
+/**
+* Specifies parameters for geometry materials, particularly, how an
+* object reflects or absorbs light.
+* The full structure is only used if the shader program supports lighting, as the
+* default shader program does.  If Scene3D.disableLighting() is called,
+* disabling lighting calculations in the default shader, only
+* the diffuse property of this object is used.
+* @param {Array<Number>} ambient Ambient reflection.  An array of three numbers
+* indicating how much an object reflects ambient lights (lights that shine
+* on all objects equally in all directions) in the red, green,
+* and blue components respectively.  Each component ranges from 0 to 1.
+* May be omitted; default is (0.2, 0.2, 0.2).
+* @param {Array<Number>} diffuse Diffuse reflection.  An array of three numbers
+* indicating how much an object reflects diffuse lights (lights that point
+* in a certain direction) in the red, green,
+* and blue components respectively.  Each component ranges from 0 to 1.
+* Setting ambient and diffuse to the same value usually defines an object's
+* color.  If Scene3D.disableLighting() is called, disabling lighting calculations,
+* this value is used for coloring objects.
+* May be omitted; default is (0.8, 0.8, 0.8).
+* @param {Array<Number>} specular Color of specular highlights on an
+* object.  An array of three numbers indicating the red, green, and blue
+* components.
+* Each component ranges from 0 to 1.
+* May be omitted; default is (0,0,0).
+* @param {Array<Number>} shininess Indicates how sharp the specular
+* highlights are.  0 means the object creates no specular highlights. Ranges
+* from 0 through 128.
+* May be omitted; default is 0.
+* @param {Array<Number>} emission Additive color emitted by an object.
+* Used for objects that glow on their own, among other things. An array of
+* three numbers indicating the red, green, and blue components.
+* Each component ranges from -1 to 1. Positive values add to each component,
+* while negative values subtract from each component.
+* May be omitted; default is (0,0,0).
+*/
+function MaterialShade(ambient, diffuse, specular,shininess,emission) {
  // NOTE: A solid color is defined by setting ambient
  // and diffuse to the same value
  this.shininess=(shininess==null) ? 0 : Math.min(Math.max(0,shininess),128);
  this.ambient=ambient||[0.2,0.2,0.2];
  this.diffuse=diffuse||[0.8,0.8,0.8];
  this.specular=specular||[0,0,0];
+ this.emission=emission||[0,0,0];
 }
+/** Clones the parameters to a new MaterialShade
+ object and returns that object. */
+MaterialShade.prototype.copy=function(){
+ return new MaterialShade(
+  this.ambient.slice(0,this.ambient.length),
+  this.diffuse.slice(0,this.diffuse.length),
+  this.specular.slice(0,this.specular.length),
+  this.shininess,
+  this.emission.slice(0,this.emission.length)
+ )
+}
+/** Convenience method that returns a MaterialShader
+ * object from an RGBA color.
+* @param {Array<Number>|Number|String} Array of three or
+* four color components; or the red color component (0-1); or a string
+* specifying an HTML or CSS color.
+* @param {Number} Green color component (0-1).
+* @param {Number} Blue color component (0-1).
+* @param {Number} Alpha color component (0-1).
+ */
 MaterialShade.fromColor=function(r,g,b,a){
  var color=GLUtil["toGLColor"](r,g,b,a);
  return new MaterialShade(color,color);
@@ -637,31 +824,202 @@ MaterialShade.prototype.bind=function(program){
  "mshin":this.shininess,
  "ma":[this.ambient[0], this.ambient[1], this.ambient[2]],
  "md":[this.diffuse[0], this.diffuse[1], this.diffuse[2]],
- "ms":this.specular
+ "ms":[this.specular[0],this.specular[1],this.specular[2]],
+ "me":[this.emission[0],this.emission[1],this.emission[2]]
  });
 }
 
+/**
+* Specifies the triangles and lines that make up a geometric shape.
+* @param {Array<Number>} An array that contains data on each
+* vertex of the mesh.
+* Each vertex is made up of the same number of elements, as defined in
+* format. If null or omitted, creates an initially empty mesh.
+* @param {Array<Number>} An array of vertex indices.  Each trio of
+* indices specifies a separate triangle.
+* If null or omitted, creates an initially empty mesh.
+* @param {Number} A set of bit flags depending on the kind of data
+* each vertex contains.  Each vertex contains 3 elements plus:
+*  - 3 more elements if Mesh.NORMALS_BIT is set, plus
+*  - 3 more elements if Mesh.COLORS_BIT is set, plus
+*  - 2 more elements if Mesh.TEXCOORDS_BIT is set.
+*/
 function Mesh(vertices,faces,format){
+ this.subMeshes=[
+  new SubMesh(vertices,faces,format)
+ ];
+ this.builderMode=-1;
+}
+Mesh._primitiveType=function(mode){
+ if(mode==Mesh.LINES)
+  return Mesh.LINES;
+ else
+  return Mesh.TRIANGLES;
+}
+Mesh._isCompatibleMode=function(oldMode,newMode){
+ if(oldMode==newMode)return true;
+ if(Mesh._primitiveType(oldMode)==Mesh._primitiveType(newMode))
+   return true;
+ return false;
+}
+Mesh._recalcNormals=function(vertices,faces,stride,offset){
+  for(var i=0;i<vertices.length;i+=stride){
+    vertices[i+offset]=0.0
+    vertices[i+offset+1]=0.0
+    vertices[i+offset+2]=0.0
+  }
+  for(var i=0;i<faces.length;i+=3){
+    var v1=faces[i]*stride
+    var v2=faces[i+1]*stride
+    var v3=faces[i+2]*stride
+    var n1=[vertices[v2]-vertices[v3],vertices[v2+1]-vertices[v3+1],vertices[v2+2]-vertices[v3+2]]
+    var n2=[vertices[v1]-vertices[v3],vertices[v1+1]-vertices[v3+1],vertices[v1+2]-vertices[v3+2]]
+    // cross multiply n1 and n2
+    var x=n1[1]*n2[2]-n1[2]*n2[1]
+    var y=n1[2]*n2[0]-n1[0]*n2[2]
+    var z=n1[0]*n2[1]-n1[1]*n2[0]
+    // normalize xyz vector
+    len=Math.sqrt(x*x+y*y+z*z);
+    if(len!=0){
+      len=1.0/len;
+      x*=len;
+      y*=len;
+      z*=len;
+      // add normalized normal to each vertex of the face
+      vertices[v1+offset]+=x
+      vertices[v1+offset+1]+=y
+      vertices[v1+offset+2]+=z
+      vertices[v2+offset]+=x
+      vertices[v2+offset+1]+=y
+      vertices[v2+offset+2]+=z
+      vertices[v3+offset]+=x
+      vertices[v3+offset+1]+=y
+      vertices[v3+offset+2]+=z
+    }
+  }
+  // Normalize each normal of the vertex
+  for(var i=0;i<vertices.length;i+=stride){
+    var x=vertices[i+offset];
+    var y=vertices[i+offset+1];
+    var z=vertices[i+offset+2];
+    len=Math.sqrt(x*x+y*y+z*z);
+    if(len){
+      len=1.0/len;
+      vertices[i+offset]=x*len;
+      vertices[i+offset+1]=y*len;
+      vertices[i+offset+2]=z*len;
+    }
+  }
+}
+ Mesh.prototype.getAttributeBits=function(){
+  // It is assumed that each sub-mesh has the same
+  // attribute bits
+  return this.subMeshes[0].attributeBits;
+ }
+ Mesh.prototype.mode=function(m){
+  if(this.subMeshes.length>0 &&
+    !Mesh._isCompatibleMode(this.builderMode,m)){
+   this.subMeshes.push(new SubMesh().mode(m));
+  } else {
+   this.subMeshes[this.subMeshes.length-1].mode(m);
+  }
+  return this;
+ }
+ /**
+  * Sets the current normal for this mesh.  The next vertex position
+  * defined will have this normal.  If necessary, rebuilds the mesh
+  * to accommodate normals.
+  * @param {Number} X-coordinate of the normal.
+  * @param {Number} Y-coordinate of the normal.
+  * @param {Number} Z-coordinate of the normal.
+  * @return {Mesh} This object.
+  */
+ Mesh.prototype.normal3=function(x,y,z){
+  for(var i=0;i<this.subMeshes.length;i++){
+   this.subMeshes[i].normal3(x,y,z);
+  }
+  return this;
+ }
+ /**
+  * Sets the current color for this mesh.  The next vertex position
+  * defined will have this color.  If necessary, rebuilds the mesh
+  * to accommodate colors.
+  * @param {Number} Red component of the color.
+  * @param {Number} Green component of the color.
+  * @param {Number} Blue component of the color.
+  * @return {Mesh} This object.
+  */
+ Mesh.prototype.color3=function(x,y,z){
+  for(var i=0;i<this.subMeshes.length;i++){
+   this.subMeshes[i].color3(x,y,z);
+  }
+  return this;
+ }
+ /**
+  * Sets the current texture coordinates for this mesh.  The next vertex position
+  * defined will have these texture coordinates.  If necessary, rebuilds the mesh
+  * to accommodate texture coordinates.
+  * @param {Number} X-coordinate of the texture, from 0-1.
+  * @param {Number} Y-coordinate of the texture, from 0-1.
+  * @return {Mesh} This object.
+  */
+ Mesh.prototype.texCoord3=function(x,y,z){
+  for(var i=0;i<this.subMeshes.length;i++){
+   this.subMeshes[i].texCoord3(x,y,z);
+  }
+  return this;
+ }
+ /**
+  * Adds a new vertex to this mesh.  If appropriate, adds an
+  * additional face index according to this mesh's current mode.
+  * @param {Number} X-coordinate of the vertex.
+  * @param {Number} Y-coordinate of the vertex.
+  * @param {Number} Z-coordinate of the vertex.
+  * @return {Mesh} This object.
+  */
+ Mesh.prototype.vertex3=function(x,y,z){
+  this.subMeshes[this.subMeshes.length-1].vertex3(x,y,z);
+  return this;
+ }
+ Mesh.prototype.recalcNormals=function(){
+  for(var i=0;i<this.subMeshes.length;i++){
+   this.subMeshes[i].recalcNormals();
+  }
+  return this;
+ }
+ Mesh.prototype.toWireFrame=function(){
+  var mesh=new Mesh();
+  for(var i=0;i<this.subMeshes.length;i++){
+   mesh.subMeshes.push(this.subMeshes[i].toWireFrame());
+  }
+  return mesh;
+ }
+
+function SubMesh(vertices,faces,format){
  this.vertices=vertices||[];
  this.tris=faces||[];
  this.stride=3;
- this.builderMode=Mesh.TRIANGLES;
+ this.builderMode=-1;
+ this.primitiveType=-1;
  this.normal=[0,0,0];
+ this.bounds=null;
  this.color=[0,0,0];
  this.texCoord=[0,0];
  this.startIndex=0;
+ this.hasLines=false;
  this.attributeBits=(format==null) ? 0 : format;
  this.mode=function(m){
-  if(this.builderMode!=m){
-   this.builderMode=m;
-   this.startIndex=this.vertices.length;
-  }
+  this.builderMode=m;
+  this.primitiveType=Mesh._primitiveType(m);
+  this.startIndex=this.vertices.length;
   return this;
  }
  this._rebuildVertices=function(newAttributes){
   var oldBits=this.attributeBits;
   var newBits=oldBits|newAttributes;
   if(newBits==oldBits)return;
+  // Rebuild the list of vertices if a new kind of
+  // attribute is added to the mesh
   var newVertices=[];
   var newStride=3;
   if((newBits&Mesh.COLORS_BIT)!=0)
@@ -734,6 +1092,7 @@ function Mesh(vertices,faces,format){
   return this;
  }
  this.vertex3=function(x,y,z){
+  if(this.builderMode==-1)throw new Error("mode() not called");
   this.vertices.push(x,y,z);
   if((this.attributeBits&Mesh.COLORS_BIT)!=0){
    this.vertices.push(this.color[0],this.color[1],this.color[2]);
@@ -757,74 +1116,81 @@ function Mesh(vertices,faces,format){
      (this.vertices.length-this.startIndex)%(this.stride*3)==0){
    var index=(this.vertices.length/this.stride)-3;
    this.tris.push(index,index+1,index+2);
+  } else if(this.builderMode==Mesh.LINES &&
+     (this.vertices.length-this.startIndex)%(this.stride*2)==0){
+   var index=(this.vertices.length/this.stride)-2;
+   this.tris.push(index,index+1);
+  } else if(this.builderMode==Mesh.TRIANGLE_FAN &&
+     (this.vertices.length-this.startIndex)>=2){
+   var index=(this.vertices.length/this.stride)-2;
+   var firstIndex=(this.startIndex/this.stride);
+   this.tris.push(firstIndex,index,index+1);
+  } else if(this.builderMode==Mesh.TRIANGLE_STRIP &&
+     (this.vertices.length-this.startIndex)>=2){
+   var index=(this.vertices.length/this.stride)-3;
+   this.tris.push(index,index+1,index+2);
   }
   return this;
  }
 }
-Mesh._recalcNormals=function(vertices,faces,stride,offset){
-  for(var i=0;i<vertices.length;i+=stride){
-    vertices[i+offset]=0.0
-    vertices[i+offset+1]=0.0
-    vertices[i+offset+2]=0.0
+SubMesh.prototype.toWireFrame=function(){
+  if(this.builderMode==Mesh.LINES){
+   return this;
   }
-  for(var i=0;i<faces.length;i+=3){
-    var v1=faces[i]*stride
-    var v2=faces[i+1]*stride
-    var v3=faces[i+2]*stride
-    var n1=[vertices[v2]-vertices[v3],vertices[v2+1]-vertices[v3+1],vertices[v2+2]-vertices[v3+2]]
-    var n2=[vertices[v1]-vertices[v3],vertices[v1+1]-vertices[v3+1],vertices[v1+2]-vertices[v3+2]]
-    // cross multiply n1 and n2
-    var x=n1[1]*n2[2]-n1[2]*n2[1]
-    var y=n1[2]*n2[0]-n1[0]*n2[2]
-    var z=n1[0]*n2[1]-n1[1]*n2[0]
-    // normalize xyz vector
-    len=Math.sqrt(x*x+y*y+z*z);
-    if(len!=0){
-      len=1.0/len;
-      x*=len;
-      y*=len;
-      z*=len;
-      // add normalized normal to each vertex of the face
-      vertices[v1+offset]+=x
-      vertices[v1+offset+1]+=y
-      vertices[v1+offset+2]+=z
-      vertices[v2+offset]+=x
-      vertices[v2+offset+1]+=y
-      vertices[v2+offset+2]+=z
-      vertices[v3+offset]+=x
-      vertices[v3+offset+1]+=y
-      vertices[v3+offset+2]+=z
-    }
+  var faces=[];
+  for(var i=0;i<this.tris.length;i+=3){
+    var f1=this.tris[i];
+    var f2=this.tris[i+1];
+    var f3=this.tris[i+2];
+    faces.push(f1,f2,f2,f3,f3,f1);
   }
-  // Normalize each normal of the vertex
-  for(var i=0;i<vertices.length;i+=stride){
-    var x=vertices[i+offset];
-    var y=vertices[i+offset+1];
-    var z=vertices[i+offset+2];
-    len=Math.sqrt(x*x+y*y+z*z);
-    if(len){
-      len=1.0/len;
-      vertices[i+offset]=x*len;
-      vertices[i+offset+1]=y*len;
-      vertices[i+offset+2]=z*len;
-    }
-  }
+  var ret=new SubMesh(this.vertices, faces, this.attributeBits);
+  ret.builderMode=Mesh.LINES;
+  return ret;
 }
-Mesh.prototype.recalcNormals=function(){
+SubMesh.prototype.recalcBounds=function(){
+  var stride=Mesh.getStride(this.attributeBits);
+  var minx=0;
+  var maxx=0;
+  var miny=0;
+  var maxy=0;
+  var minz=0;
+  var maxz=0;
+  for(var i=0;i<vertices.length;i+=stride){
+    var x=vertices[i];
+    var y=vertices[i+1];
+    var z=vertices[i+2];
+    if(i==0){
+      minx=maxx=x;
+      miny=maxy=y;
+      minz=maxz=z;
+    } else {
+      minx=Math.min(minx,x);
+      miny=Math.min(miny,y);
+      minz=Math.min(minz,z);
+      maxx=Math.max(maxx,x);
+      maxy=Math.max(maxy,y);
+      maxz=Math.max(maxz,z);
+    }
+  }
+  this.bounds=[[minx,miny,minz],[maxx,maxy,maxz]];
+  return this;
+};
+SubMesh.prototype.recalcNormals=function(){
   this._rebuildVertices(Mesh.NORMALS_BIT);
   Mesh._recalcNormals(this.vertices,this.tris,
     this.stride,3);
   return this;
 };
- Mesh.getStride=function(format){
+Mesh.getStride=function(format){
   if(format<0 || format>8)return -1;
   return [3,6,6,9,5,8,8,11][format];
  }
- Mesh.normalOffset=function(format){
+Mesh.normalOffset=function(format){
   if(format<0 || format>8)return -1;
   return [-1,3,-1,3,-1,3,-1,3][format];
  }
- Mesh.colorOffset=function(format){
+Mesh.colorOffset=function(format){
   if(format<0 || format>8)return -1;
   return [-1,-1,3,6,-1,-1,3,6][format];
  }
@@ -832,14 +1198,59 @@ Mesh.texCoordOffset=function(format){
   if(format<0 || format>8)return -1;
   return [-1,-1,-1,-1,3,6,6,9][format];
 }
+/** The mesh contains normals for each vertex. */
 Mesh.NORMALS_BIT = 1;
+/** The mesh contains colors for each vertex. */
 Mesh.COLORS_BIT = 2;
+/** The mesh contains texture coordinates for each vertex. */
 Mesh.TEXCOORDS_BIT = 4;
 Mesh.TRIANGLES = 0;
-Mesh.QUAD_STRIP = 0;
-Mesh.QUADS = 1;
+Mesh.QUAD_STRIP = 1;
+Mesh.QUADS = 2;
+Mesh.LINES = 3;
+Mesh.TRIANGLE_FAN = 4;
+Mesh.TRIANGLE_STRIP = 5;
 
+/** A geometric mesh in the form of vertex buffer objects. */
 function BufferedMesh(mesh, context){
+ this.subMeshes=[];
+ for(var i=0;i<mesh.subMeshes.length;i++){
+  this.subMeshes.push(new BufferedSubMesh(
+    mesh.subMeshes[i],context));
+ }
+}
+/**
+* Binds the buffers in this object to attributes according
+* to their data format.
+* @param {ShaderProgram} A shader program object to get
+* the IDs from for uniforms named "position", "normal",
+* "colorAttr", and "textureUV".
+*/
+BufferedMesh.prototype.bind=function(program){
+ for(var i=0;i<this.subMeshes.length;i++){
+  this.subMeshes[i].bind(program);
+ }
+}
+BufferedMesh.prototype.draw=function(program){
+ for(var i=0;i<this.subMeshes.length;i++){
+  this.subMeshes[i].draw(program);
+ }
+}
+/**
+* Deletes the vertex and index buffers associated with this object.
+*/
+BufferedMesh.prototype.dispose=function(program){
+ for(var i=0;i<this.subMeshes;i++){
+  this.subMeshes[i].dispose(program);
+ }
+}
+BufferedMesh._vertexAttrib=function(context, attrib, size, type, stride, offset){
+  if(attrib!==null){
+    context.enableVertexAttribArray(attrib);
+    context.vertexAttribPointer(attrib,size,type,false,stride,offset);
+  }
+}
+function BufferedSubMesh(mesh, context){
  var vertbuffer=context.createBuffer();
  var facebuffer=context.createBuffer();
  context.bindBuffer(context.ARRAY_BUFFER, vertbuffer);
@@ -861,18 +1272,13 @@ function BufferedMesh(mesh, context){
  }
   this.verts=vertbuffer;
   this.faces=facebuffer;
+  this.primitiveType=mesh.primitiveType;
   this.facesLength=mesh.tris.length;
   this.type=type;
   this.format=mesh.attributeBits;
   this.context=context;
 }
-BufferedMesh._vertexAttrib=function(context, attrib, size, type, stride, offset){
-  if(attrib!==null){
-    context.enableVertexAttribArray(attrib);
-    context.vertexAttribPointer(attrib,size,type,false,stride,offset);
-  }
-}
-BufferedMesh.prototype.unload=function(){
+BufferedSubMesh.prototype.dispose=function(){
  if(this.verts!=null)
   this.context.deleteBuffer(this.verts);
  if(this.faces!=null)
@@ -880,10 +1286,10 @@ BufferedMesh.prototype.unload=function(){
  this.verts=null;
  this.faces=null;
 }
-BufferedMesh.prototype.bind=function(program){
+BufferedSubMesh.prototype.bind=function(program){
   var context=program.getContext();
   if(this.verts==null || this.faces==null){
-   throw new Error("mesh buffer unloaded");
+   throw new Error("mesh buffer disposed");
   }
   if(context!=this.context){
    throw new Error("can't bind mesh: context mismatch");
@@ -912,6 +1318,20 @@ BufferedMesh.prototype.bind=function(program){
      program.get("textureUV"), 2,
     context.FLOAT, stride*4, offset*4);
   }
+}
+BufferedSubMesh.prototype.draw=function(program){
+  var context=program.getContext();
+  if(this.verts==null || this.faces==null){
+   throw new Error("mesh buffer disposed");
+  }
+  if(context!=this.context){
+   throw new Error("can't bind mesh: context mismatch");
+  }
+  context.drawElements(
+    (this.primitiveType==Mesh.LINES) ? context.LINES :
+      context.TRIANGLES,
+    this.facesLength,
+    this.type, 0);
 }
 
 var Texture=function(name){
@@ -969,17 +1389,11 @@ Texture.prototype.bind=function(program){
   this.textureImage.loadImage();
  }
  if(this.material){
-   program.setUniforms({
-  "useTexture":1.0,
-  "mshin":this.material.shininess,
-  "ma":[this.material.ambient[0],
-    this.material.ambient[1], this.material.ambient[2]],
-  "md":[this.material.diffuse[0],
-    this.material.diffuse[1], this.material.diffuse[2]],
-  "ms":this.material.specular
-  });
+   this.material.bind(program);
+   program.setUniforms({"useTexture":1.0});
  }
 }
+
 //////////////////////////////////
 var TextureImage=function(name){
   this.textureName=null;
@@ -1072,11 +1486,27 @@ TextureImage.prototype.bind=function(program){
 }
 ////////////////////////////////////////
 
+/**
+ * A holder object representing a 3D scene.  This object includes
+ * information, among other things, on:<ul>
+ *<li> A projection matrix, for setting the camera projection.</li>
+ *<li> A view matrix, for setting the camera's view and position.</li>
+ *<li> One light source (currently).</li>
+ *<li> A texture cache.</li>
+ *<li> A screen-clearing background color.</li>
+ *</ul>
+ * When a Scene3D object is created, it compiles and loads
+ * a default shader program that enables lighting parameters,
+ * and sets the projection and view matrices to identity.
+ * @param {WebGLRenderingContext} A WebGL 3D context to associate
+ * with this scene.
+ */
 function Scene3D(context){
  this.context=context;
  this.context.viewport(0,0,
     this.context.canvas.width*1.0,this.context.canvas.height*1.0);
  this.lightingEnabled=true;
+ this.specularEnabled=true;
  this.program=new ShaderProgram(context,
    this._getDefines()+ShaderProgram.getDefaultVertex(),
    this._getDefines()+ShaderProgram.getDefaultFragment());
@@ -1090,7 +1520,7 @@ function Scene3D(context){
  this._invProjectionView=null;
  this._invTransModel3=null;
  this._invView=null;
- this.lightSource=new LightSource();
+ this.lightSource=new Lights();
  this.context.blendFunc(context.SRC_ALPHA,context.ONE_MINUS_SRC_ALPHA);
  this.context.enable(this.context.DEPTH_TEST);
  this.context.depthFunc(this.context.LEQUAL);
@@ -1099,19 +1529,31 @@ function Scene3D(context){
  this.context.clear(
     this.context.COLOR_BUFFER_BIT |
     this.context.DEPTH_BUFFER_BIT);
+ this.useProgram(this.program);
 }
 Scene3D.prototype._getDefines=function(){
  var ret="";
  if(this.lightingEnabled)
   ret+="#define SHADING\n"
+ if(this.lightingEnabled)
+  ret+="#define SPECULAR\n"
  return ret;
 }
+/** Returns the WebGL context associated with this scene. */
+Scene3D.prototype.getContext=function(){
+ return this.context;
+}
 Scene3D.prototype._initProgramData=function(){
-  this.program.setUniforms({"sampler":0});
-  this.program.setLightSource(this.lightSource);
+  this.program.setUniforms({
+    "sampler":0,
+  });
+  this.lightSource.bind(this.program);
   // update matrix-related uniforms later
   this._matrixDirty=true;
 }
+/** Changes the active shader program for this scene
+* and prepares this object for the new program.
+*/
 Scene3D.prototype.useProgram=function(program){
  if(!program)throw new Error("invalid program");
  program.use();
@@ -1119,6 +1561,9 @@ Scene3D.prototype.useProgram=function(program){
  this._initProgramData();
  return this;
 }
+/** Changes the active shader program for this scene
+* to a program that doesn't support lighting.
+*/
 Scene3D.prototype.disableLighting=function(){
  this.lightingEnabled=false;
  var program=new ShaderProgram(this.context,
@@ -1126,15 +1571,32 @@ Scene3D.prototype.disableLighting=function(){
    this._getDefines()+ShaderProgram.getDefaultFragment());
  return this.useProgram(program);
 }
+/** Gets the viewport width for this scene.*/
 Scene3D.prototype.getWidth=function(){
  return this.context.canvas.width*1.0;
 }
+/** Gets the viewport height for this scene.*/
 Scene3D.prototype.getHeight=function(){
  return this.context.canvas.height*1.0;
 }
+/** Gets the ratio of width to height for this scene.*/
 Scene3D.prototype.getAspect=function(){
  return this.getWidth()/this.getHeight();
 }
+/**
+*  Sets this scene's projection matrix to a perspective view.
+* @param {Number}  Y-axis field of view, in degrees.  (The bigger
+* this number, the bigger close objects appear to be.  As a result,
+* zoom can be implemented by multiplying field of view by an
+* additional factor.)
+* @param {Number}  The aspect ratio of the viewport, usually
+*  the scene's aspect ratio (getAspect()).
+* @param {Number} The distance from the camera to
+* the near clipping plane. This should be slightly greater than 0.
+* @param {Number}  The distance from the camera to
+* the far clipping plane.
+* @return {Scene3D} this object.
+*/
 Scene3D.prototype.setPerspective=function(fov, aspect, near, far){
  return this.setProjectionMatrix(GLMath.mat4perspective(fov,
    aspect,near,far));
@@ -1152,22 +1614,40 @@ Scene3D.prototype._setClearColor=function(){
     this.clearColor[2],this.clearColor[3]);
   return this;
 }
+
+/**
+* Sets the color used when clearing the screen each frame.
+* @param {Array<Number>|Number|String} Array of three or
+* four color components; or the red color component (0-1); or a string
+* specifying an HTML or CSS color.
+* @param {Number} Green color component (0-1).
+* @param {Number} Blue color component (0-1).
+* @param {Number} Alpha color component (0-1).
+*/
 Scene3D.prototype.setClearColor=function(r,g,b,a){
  this.clearColor=GLUtil["toGLColor"](r,g,b,a);
  return this._setClearColor();
 }
-Scene3D.prototype.getColor=function(r,g,b,a){
- return MaterialShade.fromColor(r,g,b,a);
-}
-Scene3D.prototype.getMaterialParams=function(am,di,sp,sh){
- return new MaterialShade(am,di,sp,sh);
-}
+/**
+* Loads a texture from an image URL.
+* @param {String} URL of the image to load.
+* @return {Promise} A promise that is resolved when
+* the image is loaded successfully (the result will be a Texture
+* object), and is rejected when an error occurs.
+*/
 Scene3D.prototype.loadTexture=function(name){
- // Returns a promise with a Texture object result if it resolves
  return Texture.loadTexture(name, this.textureCache);
 }
+/**
+* Loads a texture from an image URL and uploads it
+* to a texture buffer object.
+* @param {String} URL of the image to load.
+* @return {Promise} A promise that is resolved when
+* the image is loaded successfully and uploaded
+* to a texture buffer (the result will be a Texture
+* object), and is rejected when an error occurs.
+*/
 Scene3D.prototype.loadAndMapTexture=function(name){
- // Returns a promise with a Texture object result if it resolves
  return Texture.loadAndMapTexture(
    name, this.context, this.textureCache);
 }
@@ -1198,24 +1678,49 @@ Scene3D.prototype.setProjectionMatrix=function(matrix){
  this._matrixDirty=true;
  return this;
 }
+/**
+*  Sets this scene's view matrix.
+* @param {Array<number>} A 16-element matrix.
+*/
 Scene3D.prototype.setViewMatrix=function(matrix){
  this._viewMatrix=GLMath.mat4copy(matrix);
  this._matrixDirty=true;
  return this;
 }
+/**
+*  Sets this scene's view matrix to represent a camera view.
+* @param {Array<number>} A 3-element vector specifying
+* the camera position.
+* @param {Array<number>} A 3-element vector specifying
+* the point the camera is looking at.
+* @param {Array<number>} A 3-element vector specifying
+* the up-vector direction.  May be omitted, in which case
+* the default is a vector pointing positive on the Y axis.  This
+* vector must not point in the same direction as the camera's
+* line of sight.
+* @return {Scene3D} this object.
+*/
 Scene3D.prototype.setLookAt=function(eye, center, up){
  up = up || [0,1,0];
  this._viewMatrix=GLMath.mat4lookat(eye, center, up);
  this._matrixDirty=true;
  return this;
 }
+/**
+* Adds a 3D shape to this scene.
+*/
 Scene3D.prototype.addShape=function(shape){
  this.shapes.push(shape.loadMesh(this.context));
  return this;
 }
-Scene3D.prototype.setLightSource=function(light){
- this.lightSource=light;
- this.program.setLightSource(this.lightSource);
+Scene3D.prototype.setDirectionalLight=function(index, position, diffuse, specular){
+ this.lightSource.setDirectionalLight(index,position,diffuse,specular);
+ this.lightSource.bind(this.program);
+ return this;
+}
+Scene3D.prototype.setPointLight=function(index, position, diffuse, specular){
+ this.lightSource.setPointLight(index,position,diffuse,specular);
+ this.lightSource.bind(this.program);
  return this;
 }
 Scene3D.prototype.render=function(){
@@ -1227,12 +1732,15 @@ Scene3D.prototype.render=function(){
   this.context.flush();
 }
 
+/** A shape object that gathers multiple shapes
+ and treats them as one bigger shape.*/
 function MultiShape(){
  this.shapes=[];
 }
-MultiShape.prototype.setScale=function(scale){
+/** Sets the scaling for each individual shape. */
+MultiShape.prototype.setScale=function(x,y,z){
  for(var i=0;i<this.shapes.length;i++){
-  this.shapes[i].setScale(scale);
+  this.shapes[i].setScale(x,y,z);
  }
 }
 MultiShape.prototype.render=function(program){
@@ -1250,6 +1758,8 @@ MultiShape.prototype.add=function(shape){
  this.shapes.push(shape);
 }
 
+/** An object that associates a geometric mesh with
+  material data and a transformation matrix. */
 function Shape(mesh){
   if(mesh==null)throw new Error("mesh is null");
   this.mesh=mesh;
@@ -1258,16 +1768,10 @@ function Shape(mesh){
   this.scale=[1,1,1];
   this.angle=0;
   this.position=[0,0,0];
-  this.vector=[0,0,0];
-  this.uniforms=[];
-  this.drawLines=false;
+  this.rotation=[0,0,0];
   this._matrixDirty=true;
   this._invTransModel3=GLMath.mat3identity();
   this.matrix=GLMath.mat4identity();
-}
-Shape.prototype.setDrawLines=function(value){
- this.drawLines=value;
- return this;
 }
 Shape.prototype.loadMesh=function(context){
  if(!this.vertfaces){
@@ -1281,21 +1785,32 @@ Shape.prototype.setMatrix=function(value){
  this._invTransModel3=GLMath.mat4inverseTranspose3(this.matrix);
  return this;
 }
-Shape.prototype.getDrawLines=function(){
- return this.drawLines;
-}
+/**
+* Sets material parameters that give the shape a certain color.
+* @param {Array<Number>|Number|String} Array of three or
+* four color components; or the red color component; or a string
+* specifying an HTML or CSS color.
+* @param {Number} Green color component.
+* @param {Number} Blue color component.
+* @param {Number} Alpha color component.
+*/
 Shape.prototype.setColor=function(r,g,b,a){
- var color=GLUtil["toGLColor"](r,g,b,a);
- this.material=MaterialShade.fromColor(color);
+ this.material=MaterialShade.fromColor(r,g,b,a);
  return this;
 }
+/** Sets this shape's material parameters.
+* @param {MaterialShade}
+*/
 Shape.prototype.setMaterial=function(material){
  this.material=material;
  return this;
 }
 Shape.prototype.setScale=function(x,y,z){
   if(x!=null && y==null && z==null){
-   this.scale=[x,x,x];
+   if(x.constructor==Array)
+    this.scale=x.slice(0,3);
+   else
+    this.scale=[x,x,x];
   } else {
    this.scale=[x,y,z];
   }
@@ -1303,13 +1818,19 @@ Shape.prototype.setScale=function(x,y,z){
   return this;
 }
 Shape.prototype.setPosition=function(x,y,z){
-  this.position=[x,y,z];
+  if(x!=null && y==null && z==null){
+   if(x.constructor==Array)
+    this.position=x.slice(0,3);
+   else
+    this.position=[x,x,x];
+  } else {
+   this.position=[x,y,z];
+  }
   this._matrixDirty=true;
   return this;
 }
-Shape.prototype.setRotation=function(angle, vector){
-  this.angle=angle%360;
-  this.vector=vector;
+Shape.prototype.setRotation=function(rotation){
+  this.rotation=rotation.slice(0,3);
   this._matrixDirty=true;
   return this;
 }
@@ -1336,19 +1857,21 @@ Shape.prototype.render=function(program){
   uniforms["useColorAttr"]=((this.vertfaces.format&Mesh.COLORS_BIT)!=0) ?
      1.0 : 0.0;
   program.setUniforms(uniforms);
-  var context=program.getContext();
-  // Draw the shape
-  context.drawElements(
-    this.drawLines ? context.LINES : context.TRIANGLES,
-    this.vertfaces.facesLength,
-    this.vertfaces.type, 0);
+  this.vertfaces.draw(program);
 };
+
 ///////////////
 Shape.prototype._updateMatrix=function(){
   this._matrixDirty=false;
   this.matrix=GLMath.mat4scaled(this.scale);
-  if(this.angle!=0){
-    this.matrix=GLMath.mat4rotate(this.matrix,this.angle,this.vector);
+  if(this.rotation[0]!=0){
+    this.matrix=GLMath.mat4rotate(this.matrix,this.rotation[0],[1,0,0]);
+  }
+  if(this.rotation[1]!=0){
+    this.matrix=GLMath.mat4rotate(this.matrix,this.rotation[1],[0,1,0]);
+  }
+  if(this.rotation[2]!=0){
+    this.matrix=GLMath.mat4rotate(this.matrix,this.rotation[2],[0,0,1]);
   }
   this.matrix[12]+=this.position[0];
   this.matrix[13]+=this.position[1];
