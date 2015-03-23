@@ -9,11 +9,6 @@
 // Adapted by Peter O. from gears.c (3D Gears), a public domain program
 // written by Brian Paul.
 
-function createContext(){
-  var canvasElement=$("#canvas").get(0);
-  return GLUtil.get3DContext(canvasElement);
-}
-
 function createGear(inner_radius, outer_radius, width, teeth, tooth_depth)
 {
 var i;
@@ -108,8 +103,7 @@ return mesh;
 }
 
 $(document).ready(function(){
-  var context=createContext();
-  var scene=new Scene3D(context);
+  var scene=new Scene3D(document.getElementById("canvas"));
   scene.setDirectionalLight(0,[5,5,10]);
   var gear1=createGear(1.0, 4.0, 1.0, 20, 0.7);
   var gear2=createGear(0.5, 2.0, 2.0, 10, 0.7);
