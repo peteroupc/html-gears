@@ -1,6 +1,5 @@
 <meta charset=utf-8>
 <head>
-<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
 <script type="text/javascript" src="glutil_min.js"></script>
 <script type="text/javascript" src="matrixstack.js"></script>
 <script>
@@ -102,7 +101,7 @@ mesh.vertex3( r0*Math.cos(angle), r0*Math.sin(angle), width*0.5 );
 return mesh;
 }
 
-$(document).ready(function(){
+window.onload=(function(){
   var scene=new Scene3D(document.getElementById("canvas"));
   scene.setDirectionalLight(0,[5,5,10]);
   var gear1=createGear(1.0, 4.0, 1.0, 20, 0.7);
