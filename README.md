@@ -1,6 +1,8 @@
 HTML 3D Gears
 ====
 
+**Download source code: [ZIP file](https://github.com/peteroupc/html-gears/archive/master.zip)**
+
 If you like this software, consider donating to me at this link: [http://upokecenter.dreamhosters.com/articles/donate-now-2/](http://upokecenter.dreamhosters.com/articles/donate-now-2/)
 
 ----
