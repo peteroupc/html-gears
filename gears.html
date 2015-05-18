@@ -112,31 +112,26 @@ window.onload=(function(){
   gear3=scene.makeShape(gear3).setColor("blue");
   scene.addShape(gear1).addShape(gear2).addShape(gear3);
   var h=scene.getHeight()/scene.getWidth();
-  scene.setProjectionMatrix(GLMath.mat4frustum(
-    -1,1,-h,h,5,60));
-  scene.setViewMatrix(GLMath.mat4translated(0,0,-40));
   var view_rotx=20,view_roty=30,view_rotz=0;
   var angle=0;
   GLUtil.renderLoop(function(){
-   var matrix=new MatrixStack()
-    .pushMatrix()
-    .rotate(view_rotx,1,0,0)
-    .rotate(view_roty,0,1,0)
-    .rotate(view_rotz,0,0,1)
-    .pushMatrix()
-    .translate(-3,-2,0)
-    .rotate(angle,0,0,1);
-   gear1.getTransform().setMatrix(matrix.get());
-   matrix.popMatrix()
-     .pushMatrix()
-     .translate(3.1,-2,0)
-     .rotate(-2*angle-9,0,0,1);
-   gear2.getTransform().setMatrix(matrix.get());
-   matrix.popMatrix()
-     .pushMatrix()
-     .translate(-3.1,4.2,0)
-     .rotate(-2*angle-25,0,0,1);
-   gear3.getTransform().setMatrix(matrix.get());
+   var view=new Transform()
+    .setPosition(0,0,-40)
+    .setOrientation(view_rotx,1,0,0)
+    .multOrientation(view_roty,0,1,0)
+    .multOrientation(view_rotz,0,0,1);
+   scene.setProjectionMatrix(GLMath.mat4frustum(
+     -1,1,-h,h,5,60));
+   scene.setViewMatrix(view.getMatrix());
+   gear1.getTransform()
+     .setPosition(-3,-2,0)
+     .setOrientation(angle,0,0,1);
+   gear2.getTransform()
+     .setPosition(3.1,-2,0)
+     .setOrientation(-2*angle-9,0,0,1);
+   gear3.getTransform()
+     .setPosition(-3.1,4.2,0)
+     .setOrientation(-2*angle-25,0,0,1);
    scene.render();
    angle+=4/2.0;
    view_rotx+=3/2.0;
