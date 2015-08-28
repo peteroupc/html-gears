@@ -120,7 +120,8 @@ window.onload=(function(){
   scene.addShape(gear1).addShape(gear2).addShape(gear3);
   var view_rotx=20,view_roty=30,view_rotz=0;
   var angle=0;
-  GLUtil.renderLoop(function(){
+  var info={}
+  GLUtil.renderLoop(function(time){
    var h=scene.getHeight()/scene.getWidth();
    var view=new Transform()
     .setPosition(0,0,-40)
@@ -140,10 +141,11 @@ window.onload=(function(){
      .setPosition(-3.1,4.2,0)
      .setOrientation(-2*angle-25,0,0,1);
    scene.render();
-   angle+=4/2.0;
-   view_rotx+=3/2.0;
-   view_roty+=1;
-   view_rotz+=1/2.0;
+   var frames=GLUtil.newFrames(info,time);
+   angle+=4/2.0*frames;
+   view_rotx+=3/2.0*frames;
+   view_roty+=1*frames;
+   view_rotz+=1/2.0*frames;
  });
 })
 //-->
