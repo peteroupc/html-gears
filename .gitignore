@@ -25,6 +25,7 @@ Help/
 ProfilingSessions/
 TestResults/
 bin/
+encoding/
 obj/
 packages/
 release.properties
