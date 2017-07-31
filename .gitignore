@@ -26,6 +26,7 @@ ProfilingSessions/
 TestResults/
 bin/
 encoding/
+encodingfldr/
 obj/
 packages/
 release.properties
